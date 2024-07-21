@@ -1,0 +1,4 @@
+name: WILDARK
+version: '${project.version}'
+main: me.harpervenom.wildark.WILDARK
+api-version: '1.21'
