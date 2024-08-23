@@ -13,6 +13,7 @@ import java.sql.SQLException;
 public class Database {
 
     private Connection connection;
+
     public PlayersManager players;
     public BlocksManager blocks;
     public LocksManager locks;

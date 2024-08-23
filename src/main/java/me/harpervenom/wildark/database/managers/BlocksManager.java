@@ -19,15 +19,15 @@ public class BlocksManager {
                     "y INTEGER NOT NULL, " +
                     "z INTEGER NOT NULL, " +
                     "world TEXT NOT NULL, " +
-                    "timestamp DATETIME DEFAULT CURRENT_TIMESTAMP), " +
-                    "FOREIGN KEY (owner_id) REFERENCES players(id)";
+                    "timestamp DATETIME DEFAULT CURRENT_TIMESTAMP, " +
+                    "FOREIGN KEY (owner_id) REFERENCES players(id))";
             statement.executeUpdate(sql);
         }
 
     }
 
     public boolean logBlock(String playerUUID, int x, int y, int z, String world) {
-        String sql = "INSERT INTO blocks (player_uuid, x, y, z, world) VALUES " +
+        String sql = "INSERT INTO blocks (owner_id, x, y, z, world) VALUES " +
                 "(?, ?, ?, ?, ?)";
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setString(1, playerUUID);
@@ -48,7 +48,7 @@ public class BlocksManager {
         int y = b.getY();
         int z = b.getZ();
         String world = b.getWorld().getName();
-        String sql = "SELECT player_uuid FROM blocks WHERE x = ? AND y = ? AND z = ? AND world = ?";
+        String sql = "SELECT owner_id FROM blocks WHERE x = ? AND y = ? AND z = ? AND world = ?";
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setInt(1, x);
             ps.setInt(2, y);
@@ -56,7 +56,7 @@ public class BlocksManager {
             ps.setString(4, world);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    return rs.getString("player_uuid");
+                    return rs.getString("owner_id");
                 }
             }
         } catch (SQLException e) {
@@ -71,12 +71,12 @@ public class BlocksManager {
         int z = b.getZ();
         String world = b.getWorld().getName();
         String sql = "DELETE FROM blocks WHERE x = ? AND y = ? AND z = ? AND world = ?";
-        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
-            pstmt.setInt(1, x);
-            pstmt.setInt(2, y);
-            pstmt.setInt(3, z);
-            pstmt.setString(4, world);
-            pstmt.executeUpdate();
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setInt(1, x);
+            ps.setInt(2, y);
+            ps.setInt(3, z);
+            ps.setString(4, world);
+            ps.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
         }

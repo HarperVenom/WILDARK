@@ -1,6 +1,7 @@
 package me.harpervenom.wildark;
 
 import me.harpervenom.wildark.database.Database;
+import me.harpervenom.wildark.listeners.*;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public final class WILDARK extends JavaPlugin {
@@ -26,7 +27,15 @@ public final class WILDARK extends JavaPlugin {
 
         System.out.println("WILDDARK запущен.");
 
-        getServer().getPluginManager().registerEvents(new BlockManager(db), this);
+        getServer().getPluginManager().registerEvents(new GeneralListener(db), this);
+
+        getServer().getPluginManager().registerEvents(new StickBlockListener(db), this);
+        getServer().getPluginManager().registerEvents(new StickRegionListener(db), this);
+
+        getServer().getPluginManager().registerEvents(new GeneralListener(db), this);
+        getServer().getPluginManager().registerEvents(new BlockListener(db), this);
+        getServer().getPluginManager().registerEvents(new PlayerListener(db), this);
+
     }
 
     @Override

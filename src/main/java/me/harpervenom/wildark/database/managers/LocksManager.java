@@ -19,8 +19,8 @@ public class LocksManager {
                     "z INTEGER NOT NULL, " +
                     "world TEXT NOT NULL, " +
                     "locked BOOLEAN NOT NULL, " +
-                    "timestamp DATETIME DEFAULT CURRENT_TIMESTAMP), " +
-                    "FOREIGN KEY (owner_id) REFERENCES players(id)";
+                    "timestamp DATETIME DEFAULT CURRENT_TIMESTAMP, " +
+                    "FOREIGN KEY (owner_id) REFERENCES players(id))";
             statement.executeUpdate(sql);
         }
     }

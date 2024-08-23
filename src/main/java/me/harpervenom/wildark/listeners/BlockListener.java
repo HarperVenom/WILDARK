@@ -1,5 +1,6 @@
-package me.harpervenom.wildark;
+package me.harpervenom.wildark.listeners;
 
+import me.harpervenom.wildark.WILDARK;
 import me.harpervenom.wildark.database.Database;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
@@ -13,11 +14,11 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 
-public class BlockManager implements Listener {
+public class BlockListener implements Listener {
 
-    private Database db;
+    private final Database db;
 
-    public BlockManager(Database db) {
+    public BlockListener(Database db) {
         this.db = db;
     }
 
