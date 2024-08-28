@@ -1,13 +1,12 @@
 package me.harpervenom.wildark.listeners;
 
+import me.harpervenom.wildark.WILDARK;
+import me.harpervenom.wildark.classes.HoloBlock;
 import me.harpervenom.wildark.classes.RegionStick;
 import me.harpervenom.wildark.database.Database;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
-import org.bukkit.ChatColor;
-import org.bukkit.GameMode;
-import org.bukkit.Material;
-import org.bukkit.Sound;
+import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -16,6 +15,7 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.scheduler.BukkitRunnable;
 
 public class StickBlockListener implements Listener {
 
@@ -49,6 +49,8 @@ public class StickBlockListener implements Listener {
 
         String blockOwnerID = db.blocks.getOwner(b);
         showInfo(blockOwnerID, p);
+
+        new HoloBlock(p,b.getLocation());
     }
 
     public void showInfo(String blockOwnerID, Player p) {

@@ -31,6 +31,7 @@ public final class WILDARK extends JavaPlugin {
 
         getServer().getPluginManager().registerEvents(new StickBlockListener(db), this);
         getServer().getPluginManager().registerEvents(new StickRegionListener(db), this);
+        getServer().getPluginManager().registerEvents(new StickAreaListener(db), this);
 
         getServer().getPluginManager().registerEvents(new GeneralListener(db), this);
         getServer().getPluginManager().registerEvents(new BlockListener(db), this);

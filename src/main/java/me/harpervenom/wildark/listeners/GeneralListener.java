@@ -48,16 +48,16 @@ public class GeneralListener implements Listener {
             stick.switchMode();
             p.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacy(ChatColor.GRAY + "Режим: "
                     + ChatColor.WHITE + translateMode(stick.getMode())));
-            p.playSound(p.getLocation(), Sound.ITEM_SPYGLASS_USE,0.5f,3f);
+            p.playSound(p.getLocation(), Sound.ITEM_SPYGLASS_USE ,0.5f,3f);
         }
-
+//
     }
 
     public String translateMode(String mode) {
         switch (mode) {
             case "Block" : return "Блок";
             case "Area" : return "Территория";
-            case "Region" : return "Регион";
+            case "Region" : return "Участок";
         }
         return "";
     }

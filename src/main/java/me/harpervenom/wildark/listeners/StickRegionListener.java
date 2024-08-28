@@ -6,10 +6,9 @@ import me.harpervenom.wildark.classes.RegionStick;
 import me.harpervenom.wildark.classes.WildPlayer;
 import me.harpervenom.wildark.database.Database;
 import me.harpervenom.wildark.database.managers.PlayersManager;
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.Location;
-import org.bukkit.Material;
+import net.md_5.bungee.api.ChatMessageType;
+import net.md_5.bungee.api.chat.TextComponent;
+import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -53,8 +52,9 @@ public class StickRegionListener implements Listener {
         if (b == null) return;
         Location bLoc = b.getLocation();
         if (!regionMap.containsKey(p.getUniqueId())){
-            regionMap.put(p.getUniqueId(),new Region(bLoc));
-            p.sendMessage(ChatColor.GRAY + "- Первая точка установлена.");
+            regionMap.put(p.getUniqueId(),new Region(p, bLoc.getWorld().getName(), (int)bLoc.getX(), (int)bLoc.getZ()));
+            p.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacy(ChatColor.WHITE + "Первая точка установлена."));
+
         } else {
             Region region = regionMap.get(p.getUniqueId());
             if (!doubleClick.containsKey(p.getUniqueId())){
@@ -62,9 +62,9 @@ public class StickRegionListener implements Listener {
                 BukkitRunnable task = new BukkitRunnable() {
                     @Override
                     public void run() {
-                        region.setFirstCorner(bLoc);
+                        region.setFirstCorner((int)bLoc.getX(), (int)bLoc.getZ());
                         doubleClick.remove(p.getUniqueId());
-                        p.sendMessage(ChatColor.GRAY + "- Первая точка установлена.");
+                        p.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacy(ChatColor.WHITE + "Первая точка установлена."));
                         checkRegion(p,wildPlayer,region);
                     }
                 };
@@ -74,9 +74,9 @@ public class StickRegionListener implements Listener {
             } else {
                 Bukkit.getScheduler().cancelTask(doubleClick.get(p.getUniqueId()));
 
-                region.setSecondCorner(bLoc);
+                region.setSecondCorner((int)bLoc.getX(), (int)bLoc.getZ());
                 doubleClick.remove(p.getUniqueId());
-                p.sendMessage(ChatColor.GRAY + "-- Вторая точка установлена.");
+                p.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacy(ChatColor.WHITE + "Вторая точка установлена."));
                 checkRegion(p,wildPlayer,region);
             }
 
@@ -101,34 +101,22 @@ public class StickRegionListener implements Listener {
         Region region = regionMap.get(p.getUniqueId());
         if (wildPlayer.getAvailableBlocks() >= region.getArea()) {
             db.regions.createRegion(wildPlayer, region);
-            p.sendMessage("Вы успешно создали регион.");
+            p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.GRAY + "Вы успешно создали регион.");
             regionMap.remove(p.getUniqueId());
         }
-    }
-
-    public String composePointMessage(int number, Location bLoc){
-        return ChatColor.GRAY + "(" + number + ") X "
-                + ChatColor.WHITE + (int) bLoc.getX()
-                + ChatColor.GRAY + " Z "
-                + ChatColor.WHITE + (int) bLoc.getZ();
     }
 
     public void checkRegion(Player p, WildPlayer wildPlayer, Region region) {
         if (region.areaSelected()) {
             ChatColor color = wildPlayer.getAvailableBlocks() >= region.getArea() ? ChatColor.GREEN : ChatColor.RED;
-            p.sendMessage(ChatColor.GRAY + "--- Выделенный участок: " + ChatColor.WHITE + region.getGrid() + ChatColor.GRAY + ". Кол-во блоков: " + color + region.getArea());
-//            p.sendMessage(ChatColor.GRAY + "-----------------------------");
-//            p.sendMessage(ChatColor.GRAY + "Выделенный участок: ");
-//            p.sendMessage(composePointMessage(1,region.getFirstCorner()));
-//            p.sendMessage(composePointMessage(2,region.getSecondCorner()));
-//            p.sendMessage(ChatColor.GRAY + "Кол-во блоков: " + color + region.getArea());
+            p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.GRAY + "Выделенный участок: " + ChatColor.WHITE + region.getGrid() + ChatColor.GRAY + ". Кол-во блоков: " + color + region.getArea());
 
             if (wildPlayer.getAvailableBlocks() < region.getArea()) {
-                p.sendMessage(ChatColor.GRAY + "У вас недостаточно блоков для выделенного участка.");
+                p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.GRAY + "У вас недостаточно блоков для выделенного участка.");
             } else {
-                p.sendMessage(ChatColor.GRAY + "Чтобы создать участок, нажмите ШИФТ + ПКМ.");
+                p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.GRAY + "Чтобы создать участок, нажмите ШИФТ + ПКМ.");
             }
-            p.sendMessage("\n");
+//            p.sendMessage("\n");
         }
     }
 }

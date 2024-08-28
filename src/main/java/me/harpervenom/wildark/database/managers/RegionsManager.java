@@ -2,8 +2,13 @@ package me.harpervenom.wildark.database.managers;
 
 import me.harpervenom.wildark.classes.Region;
 import me.harpervenom.wildark.classes.WildPlayer;
+import org.bukkit.Bukkit;
 
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
 
 public class RegionsManager {
 
@@ -41,11 +46,11 @@ public class RegionsManager {
         String relationSql = "INSERT INTO players_regions (player_id, region_id, relation) VALUES " +
                 "(?, ?, ?)";
         try (PreparedStatement psRegion = connection.prepareStatement(regionSql)) {
-            psRegion.setInt(1,(int)region.getFirstCorner().getX());
-            psRegion.setInt(2,(int)region.getFirstCorner().getZ());
-            psRegion.setInt(3,(int)region.getSecondCorner().getX());
-            psRegion.setInt(4, (int)region.getSecondCorner().getZ());
-            psRegion.setString(5, region.getFirstCorner().getWorld().getName());
+            psRegion.setInt(1,region.getX1());
+            psRegion.setInt(2,region.getZ1());
+            psRegion.setInt(3,region.getX2());
+            psRegion.setInt(4, region.getZ2());
+            psRegion.setString(5, region.getWorldName());
             psRegion.executeUpdate();
 
             //Make relation between region and owner
@@ -68,6 +73,49 @@ public class RegionsManager {
         }catch (SQLException e) {
             e.printStackTrace();
             return false;
+        }
+    }
+
+    public List<Region> scanArea(String worldName, int x, int z, int radius) {
+        String query = "SELECT * FROM regions WHERE world = ? AND " +
+                "((x1 <= ? AND x1 >= ?) OR (x2 <= ? AND x2 >= ?)) AND " +
+                "((z1 <= ? AND z1 >= ?) OR (z2 <= ? AND z2 >= ?))";
+
+        int scanAreaMinX = x - radius;
+        int scanAreaMaxX = x + radius;
+        int scanAreaMinZ = z - radius;
+        int scanAreaMaxZ = z + radius;
+
+        try (PreparedStatement ps = connection.prepareStatement(query)) {
+            ps.setString(1, worldName);      // world name
+            ps.setInt(2, scanAreaMaxX);      // x2 of scan area
+            ps.setInt(3, scanAreaMinX);      // x1 of scan area
+            ps.setInt(4, scanAreaMaxX);      // x2 of scan area
+            ps.setInt(5, scanAreaMinX);      // x1 of scan area
+            ps.setInt(6, scanAreaMaxZ);      // z2 of scan area
+            ps.setInt(7, scanAreaMinZ);      // z1 of scan area
+            ps.setInt(8, scanAreaMaxZ);      // z2 of scan area
+            ps.setInt(9, scanAreaMinZ);      // z1 of scan area
+
+
+            try (ResultSet rs = ps.executeQuery()) {
+                List<Region> regions = new ArrayList<>();
+                while (rs.next()) {
+                    Region region = new Region(
+                            Bukkit.getPlayer(UUID.fromString(rs.getString("player_id"))),
+                            rs.getString("world"),
+                            rs.getInt("x1"),
+                            rs.getInt("z1"),
+                            rs.getInt("x2"),
+                            rs.getInt("z2")
+                    );
+                    regions.add(region);
+                }
+                return regions;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return Collections.emptyList();
         }
     }
 }
