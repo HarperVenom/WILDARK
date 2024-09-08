@@ -2,11 +2,8 @@ package me.harpervenom.wildark.listeners;
 
 import me.harpervenom.wildark.classes.Region;
 import me.harpervenom.wildark.classes.RegionStick;
-import me.harpervenom.wildark.classes.WildPlayer;
 import me.harpervenom.wildark.database.Database;
-import org.bukkit.ChatColor;
-import org.bukkit.Location;
-import org.bukkit.Material;
+import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -29,7 +26,7 @@ public class StickAreaListener implements Listener {
     @EventHandler
     public void checkArea(PlayerInteractEvent e) {
         Player p = e.getPlayer();
-        WildPlayer wildPlayer = db.players.getPlayer(p.getUniqueId().toString());
+//        WildPlayer wildPlayer = db.players.getPlayer(p.getUniqueId().toString());
 
         if (e.getAction() == Action.RIGHT_CLICK_AIR || e.getAction() == Action.RIGHT_CLICK_BLOCK) return;
         if (e.getHand() == EquipmentSlot.OFF_HAND) return;
@@ -44,63 +41,51 @@ public class StickAreaListener implements Listener {
         if (b == null) return;
         Location bLoc = b.getLocation();
 
-        List<Region> regions = db.regions.scanArea(bLoc.getWorld().getName(), (int)bLoc.getX(), (int)bLoc.getZ(),4);
-//        p.sendMessage(String.valueOf(regions.size()));
-        displayGridInChat(p,bLoc,regions);
+
+//        showBlock(bLoc.clone().add(0.5,0.5,0.5),10);
+        scanArea(p, bLoc,3);
+
+
+
     }
 
-    public void displayGridInChat(Player player, Location clickedLocation, List<Region> regions) {
-        // Get player's current location
-        Location playerLocation = player.getLocation();
-        int playerX = playerLocation.getBlockX();
-        int playerZ = playerLocation.getBlockZ();
-        String playerWorld = playerLocation.getWorld().getName();
+    public void scanArea(Player p ,Location loc, int radius) {
 
-        // Calculate grid boundaries centered around player's location
-        int gridMinX = playerX - 4;
-        int gridMaxX = playerX + 4;
-        int gridMinZ = playerZ - 4;
-        int gridMaxZ = playerZ + 4;
+        List<Region> regions = db.regions.scanArea(loc.getWorld().getName(), loc.getBlockX(), loc.getBlockZ(),5);
 
-        // Iterate through the 9x9 grid and build the grid string
-        for (int j = 0; j < 9; j++) { // j represents rows (top to bottom)
-            StringBuilder row = new StringBuilder();
-            for (int i = 9; i >= 0; i--) { // i represents columns (left to right)
-                int x = gridMinX + i; // Calculate x coordinate
-                int z = gridMinZ + (8 - j); // Reverse the z coordinate to match text display
 
-                // Determine if this block is the clicked location
-                boolean isClickedBlock = (x == clickedLocation.getBlockX()) && (z == clickedLocation.getBlockZ()) && playerWorld.equals(clickedLocation.getWorld().getName());
 
-                // Determine if this block is the player's location
-                boolean isPlayerLocation = (x == playerX) && (z == playerZ) && playerWorld.equals(playerWorld);
+        int minX = loc.getBlockX() - radius;
+        int maxX = loc.getBlockX() + radius;
+        int minZ = loc.getBlockZ() - radius;
+        int maxZ = loc.getBlockZ() + radius;
 
-                // Check if this block is in any region
-                boolean isInRegion = false;
+        for (int i = minX; i <= maxX; i++) {
+            for (int j = minZ; j <= maxZ; j++) {
+                Color color = Color.GRAY;
+
                 for (Region region : regions) {
-                    if (region.contains(x, z)) {
-                        isInRegion = true;
-                        break;
+                    if (region.contains(i,j)) {
+                        if (region.getOwner().equals(p)) color = Color.LIME;
+                        else color = Color.RED;
                     }
                 }
 
-                // Assign color based on conditions
-                if (isPlayerLocation) {
-                    row.append(ChatColor.BLUE).append("# "); // Player location
-                } else if (isClickedBlock) {
-                    row.append(ChatColor.GOLD).append("# "); // Central block (clicked block)
-                } else if (isInRegion) {
-                    row.append(ChatColor.RED).append("# "); // Block belongs to a region
-                } else {
-                    row.append(ChatColor.GRAY).append("# "); // Block does not belong to any region
-                }
+                showBlock(new Location(loc.getWorld(),i,loc.getY(),j).add(0.5,0.5,0.5), 10, color);
             }
-            player.sendMessage(row.toString());
         }
-
-        // Adding an empty line after the grid for better readability
-        player.sendMessage("");
     }
 
+    public void showBlock(Location center, int count, Color color) {
+        float offset = 0.5f; // Half-block offset for each axis
 
+        for (int i = 0; i < count; i++) {
+            double x = center.getX() + (Math.random() * 2 - 1) * offset;
+            double y = center.getY() + (Math.random() * 2 - 1) * 2*offset;
+            double z = center.getZ() + (Math.random() * 2 - 1) * offset;
+
+            Particle.DustOptions dustOptions = new Particle.DustOptions(color,1f);
+            center.getWorld().spawnParticle(Particle.DUST, x, y, z, 1, dustOptions);
+        }
+    }
 }

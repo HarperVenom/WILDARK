@@ -16,22 +16,28 @@ public class HoloBlock {
     private Location loc;
     private BukkitRunnable particleTask;
 
-    public HoloBlock(Player p, Location loc) {
+    public HoloBlock(Player p, Location loc, String color) {
         this.p = p;
         this.loc = loc;
-        createHologram();
+        createHologram(color);
     }
 
-    private void createHologram() {
-//        Particle.DustOptions dustOptions = new Particle.DustOptions(Color.YELLOW,1f);
-
+    private void createHologram(String color) {
+        Particle particle;
+        switch (color){
+            case "blue": particle = Particle.SCRAPE; break;
+            case "yellow": particle = Particle.WAX_ON; break;
+            default : particle = Particle.WAX_OFF; break;
+        }
+        int count = color.equals("yellow") ? 30 : 20;
+        int offsetY = 2;
         particleTask = new BukkitRunnable() {
             @Override
             public void run() {
-                p.spawnParticle(Particle.WAX_ON, loc.clone(), 100, 0, 8, 0, 0);
-                p.spawnParticle(Particle.WAX_ON, loc.clone().add(1, 0, 0), 100, 0, 8, 0, 0);
-                p.spawnParticle(Particle.WAX_ON, loc.clone().add(1, 0, 1), 100, 0, 8, 0, 0);
-                p.spawnParticle(Particle.WAX_ON, loc.clone().add(0, 0, 1), 100, 0, 8, 0, 0);
+                p.spawnParticle(particle, loc.clone(), count, 0, offsetY, 0, 0);
+                p.spawnParticle(particle, loc.clone().add(1, 0, 0), count, 0, offsetY, 0, 0);
+                p.spawnParticle(particle, loc.clone().add(1, 0, 1), count, 0, offsetY, 0, 0);
+                p.spawnParticle(particle, loc.clone().add(0, 0, 1), count, 0, offsetY, 0, 0);
             }
         };
         particleTask.runTaskTimer(WILDARK.getPlugin(), 0L, 10L);

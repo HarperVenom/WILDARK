@@ -15,7 +15,7 @@ public class HoloArea {
 
     private BukkitRunnable particleTask;
 
-    public HoloArea(Player p, Location loc1, Location loc2){
+    public HoloArea(Player p, Location loc1, Location loc2, String color){
         this.loc1 = loc1;
         this.loc2 = loc2;
 
@@ -36,34 +36,37 @@ public class HoloArea {
         int xSpace = xDiff / 10;
         int zSpace = zDiff / 10;
 
-//        Particle.DustOptions dustOptions = new Particle.DustOptions(Color.WHITE,0.5f);
+        Particle particle = color == "white" ? Particle.WAX_OFF : Particle.SCRAPE;
+
+        int count = 5;
+        int offsetY = 2;
 
             particleTask = new BukkitRunnable() {
                 @Override
                 public void run() {
                     //X sides
-                    p.spawnParticle(Particle.WAX_OFF, xMinLoc.clone().add(0,0, xMaxLoc == zMinLoc ? 1 : 0), 70, 0, 5, 0, 0);
+                    p.spawnParticle(particle, xMinLoc.clone().add(0,0, xMaxLoc == zMinLoc ? 1 : 0), count, 0, offsetY, 0, 0);
                     for (int i = xMin; i < xMax+1; i++) {
                         int finalI = i - xMin + 1;
                         if (xSpace != 0 && xSpace != 1 && finalI % xSpace != 0) continue;
-                        p.spawnParticle(Particle.WAX_OFF, xMinLoc.clone().add(finalI,0, xMaxLoc == zMinLoc ? 1 : 0), 70, 0, 5, 0, 0);
+                        p.spawnParticle(particle, xMinLoc.clone().add(finalI,0, xMaxLoc == zMinLoc ? 1 : 0), count, 0, offsetY, 0, 0);
                     }
 
                     int z = (xMaxLoc == zMinLoc ? 0 : 1)
                             + (xMaxLoc == zMinLoc ? -zDiff : zDiff);
 
-                    p.spawnParticle(Particle.WAX_OFF, xMinLoc.clone().add(0,0, z), 70, 0, 5, 0, 0);
+                    p.spawnParticle(particle, xMinLoc.clone().add(0,0, z), count, 0, offsetY, 0, 0);
                     for (int i = xMin; i < xMax+1; i++) {
                         int finalI = i - xMin + 1;
                         if (xSpace != 0 && xSpace != 1 && finalI % xSpace != 0) continue;
-                        p.spawnParticle(Particle.WAX_OFF, xMinLoc.clone().add(finalI,0, z), 70, 0, 5, 0, 0);
+                        p.spawnParticle(particle, xMinLoc.clone().add(finalI,0, z), count, 0, offsetY, 0, 0);
                     }
 
                     //Z sides
                     for (int i = zMin; i < zMax+1; i++) {
                         int finalI = i - zMin + 1;
                         if (zSpace != 0 && zSpace != 1 && finalI % zSpace != 0) continue;
-                        p.spawnParticle(Particle.WAX_OFF, zMinLoc.clone().add(zMaxLoc == xMinLoc ? 1 : 0,0, finalI), 70, 0, 5, 0, 0);
+                        p.spawnParticle(particle, zMinLoc.clone().add(zMaxLoc == xMinLoc ? 1 : 0,0, finalI), count, 0, offsetY, 0, 0);
                     }
 
                     int x = (zMaxLoc == xMinLoc ? 0 : 1)
@@ -72,7 +75,7 @@ public class HoloArea {
                     for (int i = zMin; i < zMax+1; i++) {
                         int finalI = i - zMin + 1;
                         if (zSpace != 0 && zSpace != 1 && finalI % zSpace != 0) continue;
-                        p.spawnParticle(Particle.WAX_OFF, zMinLoc.clone().add(x,0, finalI), 70, 0, 5, 0, 0);
+                        p.spawnParticle(particle, zMinLoc.clone().add(x,0, finalI), count, 0, offsetY, 0, 0);
                     }
                 }
             };

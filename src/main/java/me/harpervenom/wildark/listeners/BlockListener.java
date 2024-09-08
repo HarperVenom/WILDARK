@@ -39,7 +39,7 @@ public class BlockListener implements Listener {
 
             Bukkit.getScheduler().runTask(WILDARK.getPlugin(), () -> {
                 if (!res) {
-                    p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_BIT,1,0.5f);
+//                    p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_BIT,1,0.5f);
                     p.spigot().sendMessage(ChatMessageType.ACTION_BAR,
                             new TextComponent(ChatColor.RED + "Не удалось записать блок."));
                 }

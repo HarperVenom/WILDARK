@@ -49,8 +49,6 @@ public class StickBlockListener implements Listener {
 
         String blockOwnerID = db.blocks.getOwner(b);
         showInfo(blockOwnerID, p);
-
-        new HoloBlock(p,b.getLocation());
     }
 
     public void showInfo(String blockOwnerID, Player p) {
@@ -59,7 +57,7 @@ public class StickBlockListener implements Listener {
         } else {
             ChatColor color = blockOwnerID.equals(p.getUniqueId().toString()) ? ChatColor.GREEN : ChatColor.RED;
             p.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacy(color + "Защищено."));
-            p.playSound(p.getLocation(), Sound.ENTITY_BLAZE_HURT,0.2f,1f);
+//            p.playSound(p.getLocation(), Sound.ENTITY_BLAZE_HURT,0.2f,1f);
         }
     }
 }

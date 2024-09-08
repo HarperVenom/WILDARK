@@ -5,10 +5,7 @@ import me.harpervenom.wildark.database.Database;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.ChatColor;
-import org.bukkit.GameMode;
 import org.bukkit.Material;
-import org.bukkit.Sound;
-import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -46,9 +43,17 @@ public class GeneralListener implements Listener {
         } else {
             RegionStick stick = regionStickMap.get(p.getUniqueId());
             stick.switchMode();
+            if (StickRegionListener.regionMap.containsKey(p.getUniqueId())) {
+                StickRegionListener.regionMap.get(p.getUniqueId()).removeHolo();
+                StickRegionListener.regionMap.remove(p.getUniqueId());
+            }
+            if (StickRegionListener.existingRegionMap.containsKey(p.getUniqueId())) {
+                StickRegionListener.existingRegionMap.get(p.getUniqueId()).removeHolo();
+                StickRegionListener.existingRegionMap.remove(p.getUniqueId());
+            }
             p.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacy(ChatColor.GRAY + "Режим: "
                     + ChatColor.WHITE + translateMode(stick.getMode())));
-            p.playSound(p.getLocation(), Sound.ITEM_SPYGLASS_USE ,0.5f,3f);
+//            p.playSound(p.getLocation(), Sound.ITEM_SPYGLASS_USE ,0.5f,3f);
         }
 //
     }
