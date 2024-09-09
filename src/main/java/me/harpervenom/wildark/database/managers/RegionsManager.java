@@ -4,6 +4,7 @@ import me.harpervenom.wildark.classes.Region;
 import org.bukkit.Bukkit;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
+import sun.tools.jconsole.JConsole;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -43,7 +44,8 @@ public class RegionsManager {
         }
     }
 
-    public boolean createRegion(Player p, Region region) {
+    public boolean createRegion(Region region) {
+        Player p = region.getOwner();
         String regionSql = "INSERT INTO regions (name, x1, z1, x2, z2, world) VALUES " +
                 "(?, ?, ?, ?, ?, ?)";
         String relationSql = "INSERT INTO players_regions (player_id, region_id, relation) VALUES " +
@@ -89,6 +91,29 @@ public class RegionsManager {
         }
     }
 
+    public boolean updateRegion(Region region){
+        String sql = "UPDATE regions SET x1 = ?, z1 = ?, x2 = ?, z2 = ?, timestamp = CURRENT_TIMESTAMP WHERE id = ?";
+
+        int x1 = Math.min(region.getX1(), region.getX2());
+        int z1 = Math.min(region.getZ1(), region.getZ2());
+        int x2 = Math.max(region.getX1(), region.getX2());
+        int z2 = Math.max(region.getZ1(), region.getZ2());
+
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setInt(1, x1);
+            pstmt.setInt(2, z1);
+            pstmt.setInt(3, x2);
+            pstmt.setInt(4, z2);
+            pstmt.setInt(5, region.getId());
+
+            int rowsAffected = pstmt.executeUpdate();
+            return rowsAffected > 0;
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+            return false;
+        }
+    }
+
 
     private List<Region> getPlayerRegions(Player p) {
         String query = "SELECT * FROM players_regions WHERE player_id = ?";
@@ -116,7 +141,6 @@ public class RegionsManager {
                                     regionsRs.getInt("z1"),
                                     regionsRs.getInt("x2"),
                                     regionsRs.getInt("z2"),
-                                    true,
                                     "white"
                             );
                             regions.add(region);
@@ -154,13 +178,12 @@ public class RegionsManager {
 
     public Region getBlockRegion(Block b) {
         String query = "SELECT * FROM regions WHERE world = ? AND x1 <= ? AND x2 >= ? AND z1 <= ? AND z2 >= ?";
-
         try (PreparedStatement ps = connection.prepareStatement(query)){
-            ps.setString(1,b.getWorld().getName());
-            ps.setInt(2,b.getX());
-            ps.setInt(3,b.getX());
-            ps.setInt(4,b.getZ());
-            ps.setInt(5,b.getZ());
+            ps.setString(1, b.getWorld().getName());
+            ps.setInt(2, b.getX());
+            ps.setInt(3, b.getX());
+            ps.setInt(4, b.getZ());
+            ps.setInt(5, b.getZ());
 
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()){
@@ -173,10 +196,9 @@ public class RegionsManager {
                             rs.getInt("z1"),
                             rs.getInt("x2"),
                             rs.getInt("z2"),
-                            true,
                             "blue");
                 }
-                   return null;
+                return null;
             }
 
         } catch (SQLException e){
@@ -259,7 +281,6 @@ public class RegionsManager {
                                 rs.getInt("z1"),
                                 rs.getInt("x2"),
                                 rs.getInt("z2"),
-                                true,
                                 "white"
                         );
                         regions.add(region);

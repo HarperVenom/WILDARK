@@ -49,7 +49,7 @@ public class Region {
         showHolo();
     }
 
-    public Region(int id, Player p, String name, String worldName, int x1, int z1, int x2, int z2, boolean isOld, String color) {
+    public Region(int id, Player p, String name, String worldName, int x1, int z1, int x2, int z2, String color) {
         this.id = id;
         this.p = p;
         this.worldName = worldName;

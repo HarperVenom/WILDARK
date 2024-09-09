@@ -32,7 +32,7 @@ public class StickRegionListener implements Listener {
     }
 
     public static HashMap<UUID, Region> regionMap = new HashMap<>();
-    public static HashMap<UUID, Region> existingRegionMap = new HashMap<>();
+    public static HashMap<UUID, Region> selectedRegionMap = new HashMap<>();
     HashMap<UUID, Integer> doubleClick = new HashMap<>();
 
     @EventHandler
@@ -52,7 +52,7 @@ public class StickRegionListener implements Listener {
 
         if (e.getAction() == Action.RIGHT_CLICK_AIR || e.getAction() == Action.RIGHT_CLICK_BLOCK) {
             if (!p.isSneaking()) return;
-            if (existingRegionMap.containsKey(p.getUniqueId())) {
+            if (selectedRegionMap.containsKey(p.getUniqueId())) {
                 updateRegion(p);
                 return;
             }
@@ -61,9 +61,9 @@ public class StickRegionListener implements Listener {
             }
         } else if (e.getAction() == Action.LEFT_CLICK_AIR || e.getAction() == Action.LEFT_CLICK_BLOCK) {
             Region existingRegion;
-            if (existingRegionMap.containsKey(p.getUniqueId()) && (existingRegionMap.get(p.getUniqueId()).contains(b.getX(), b.getZ())
-                    || existingRegionMap.get(p.getUniqueId()).getSelectedCorner() != 0)) {
-                existingRegion = existingRegionMap.get(p.getUniqueId());
+            if (selectedRegionMap.containsKey(p.getUniqueId()) && (selectedRegionMap.get(p.getUniqueId()).contains(b.getX(), b.getZ())
+                    || selectedRegionMap.get(p.getUniqueId()).getSelectedCorner() != 0)) {
+                existingRegion = selectedRegionMap.get(p.getUniqueId());
             } else {
                 existingRegion = db.regions.getBlockRegion(b);
             }
@@ -80,13 +80,13 @@ public class StickRegionListener implements Listener {
     public void selectBorder(Player p, Block b) {
         Location loc = b.getLocation();
 
-        if (existingRegionMap.containsKey(p.getUniqueId())){
+        if (selectedRegionMap.containsKey(p.getUniqueId())){
             return;
         }
 
         if (!regionMap.containsKey(p.getUniqueId())){
             regionMap.put(p.getUniqueId(),new Region(p, loc.getWorld().getName(), loc.getBlockX(), loc.getBlockZ()));
-            p.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacy(ChatColor.WHITE + "Первая точка установлена."));
+            p.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacy(ChatColor.YELLOW + "Первая точка установлена."));
         } else {
             Region region = regionMap.get(p.getUniqueId());
             if (!doubleClick.containsKey(p.getUniqueId())){
@@ -94,10 +94,10 @@ public class StickRegionListener implements Listener {
                 BukkitRunnable task = new BukkitRunnable() {
                     @Override
                     public void run() {
-                        if (existingRegionMap.containsKey(p.getUniqueId())) return;
+                        if (selectedRegionMap.containsKey(p.getUniqueId())) return;
                         region.setFirstCorner((int)loc.getX(), (int)loc.getZ());
                         doubleClick.remove(p.getUniqueId());
-                        p.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacy(ChatColor.WHITE + "Первая точка установлена."));
+                        p.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacy(ChatColor.YELLOW + "Первая точка установлена."));
                         checkRegion(p);
                     }
                 };
@@ -109,7 +109,7 @@ public class StickRegionListener implements Listener {
 
                 region.setSecondCorner((int)loc.getX(), (int)loc.getZ());
                 doubleClick.remove(p.getUniqueId());
-                p.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacy(ChatColor.WHITE + "Вторая точка установлена."));
+                p.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacy(ChatColor.YELLOW + "Вторая точка установлена."));
                 checkRegion(p);
             }
         }
@@ -120,6 +120,7 @@ public class StickRegionListener implements Listener {
 
         WildPlayer wildPlayer = db.players.getPlayer(p.getUniqueId().toString());
         if (region.areaSelected()) {
+            p.sendMessage("");
             ChatColor color = wildPlayer.getAvailableBlocks() >= region.getArea() ? ChatColor.WHITE : ChatColor.RED;
             p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.GRAY + "Участок: " + ChatColor.WHITE + region.getGrid() + ChatColor.GRAY + ". Необходимо блоков: " + color + region.getArea());
 
@@ -132,16 +133,17 @@ public class StickRegionListener implements Listener {
     }
 
     public void checkNewRegion(Player p){
-        Region oldRegion = existingRegionMap.get(p.getUniqueId());
+        Region oldRegion = selectedRegionMap.get(p.getUniqueId());
         Region newRegion = regionMap.get(p.getUniqueId());
 
         int price = getPrice(oldRegion, newRegion);
 
         WildPlayer wildPlayer = db.players.getPlayer(p.getUniqueId().toString());
         if (newRegion.areaSelected()) {
+            p.sendMessage("");
             ChatColor color = wildPlayer.getAvailableBlocks() >= price ? ChatColor.WHITE : ChatColor.RED;
             p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.GRAY + "Новый участок: " + ChatColor.WHITE + newRegion.getGrid() + ChatColor.GRAY
-                    + ". Необходимо блоков: " + color + price);
+                    + (price > 0 ? ". Необходимо блоков: " + color + price : ". Будет возвращено блоков: " + color + (-price)));
 
             if (price > 0 && wildPlayer.getAvailableBlocks() < price) {
                 p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.GRAY + "У вас недостаточно блоков.");
@@ -201,7 +203,7 @@ public class StickRegionListener implements Listener {
             return;
         }
 
-        db.regions.createRegion(p, region);
+        db.regions.createRegion(region);
         p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.GREEN + "Вы создали регион.");
         p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.GRAY + "Потрачено блоков: "
                 + ChatColor.WHITE + (region.getArea()) + ChatColor.GRAY + ".");
@@ -209,7 +211,7 @@ public class StickRegionListener implements Listener {
     }
 
     public void updateRegion(Player p) {
-        Region oldRegion = existingRegionMap.get(p.getUniqueId());
+        Region oldRegion = selectedRegionMap.get(p.getUniqueId());
         Region newRegion = regionMap.get(p.getUniqueId());
 
         int price = getPrice(oldRegion, newRegion);
@@ -226,6 +228,9 @@ public class StickRegionListener implements Listener {
         if (regionStatus.equals("intersect")){
             p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.GRAY + "Участок пересекается с другими.");
             return;
+        } else if (regionStatus.equals("close")) {
+            p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.GRAY + "Рядом участок больше вашего.");
+            return;
         }
 
         p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.GREEN + "Вы обновили регион.");
@@ -238,6 +243,7 @@ public class StickRegionListener implements Listener {
                     + ChatColor.WHITE + (price) + ChatColor.GRAY + ".");
         }
 
+        boolean updated = db.regions.updateRegion(newRegion);
         clearExistingRegionMap(p);
         clearRegionMap(p);
     }
@@ -273,7 +279,7 @@ public class StickRegionListener implements Listener {
             }
             if (!regionMap.containsKey(p.getUniqueId())){
                 Region newRegion = new Region(p,b.getWorld().getName(), oppositeX, oppositeZ);
-                newRegion.setId(existingRegionMap.get(p.getUniqueId()).getId());
+                newRegion.setId(selectedRegionMap.get(p.getUniqueId()).getId());
                 newRegion.setSecondCorner(b.getX(), b.getZ());
                 newRegion.selectCorner(b.getX(), b.getZ());
                 regionMap.put(p.getUniqueId(), newRegion);
@@ -288,15 +294,15 @@ public class StickRegionListener implements Listener {
             return;
         }
 
-        if (existingRegionMap.containsKey(p.getUniqueId()) && existingRegionMap.get(p.getUniqueId()).getName().equals(region.getName())){
-            Region existing = existingRegionMap.get(p.getUniqueId());
+        if (selectedRegionMap.containsKey(p.getUniqueId()) && selectedRegionMap.get(p.getUniqueId()).getName().equals(region.getName())){
+            Region existing = selectedRegionMap.get(p.getUniqueId());
             existing.selectCorner(b.getX(), b.getZ());
-            p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.YELLOW + "Угол выбран.");
+            p.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacy(ChatColor.YELLOW +  "Угол выбран."));
             return;
         }
 
-        p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.YELLOW + "Участок выделен.");
-        existingRegionMap.put(p.getUniqueId(), region);
+        p.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacy(ChatColor.YELLOW + "Участок выделен."));
+        selectedRegionMap.put(p.getUniqueId(), region);
         region.showHolo();
         clearRegionMap(p);
     }
@@ -323,9 +329,9 @@ public class StickRegionListener implements Listener {
     }
 
     public void clearExistingRegionMap(Player p){
-        if (StickRegionListener.existingRegionMap.containsKey(p.getUniqueId())) {
-            StickRegionListener.existingRegionMap.get(p.getUniqueId()).removeHolo();
-            StickRegionListener.existingRegionMap.remove(p.getUniqueId());
+        if (StickRegionListener.selectedRegionMap.containsKey(p.getUniqueId())) {
+            StickRegionListener.selectedRegionMap.get(p.getUniqueId()).removeHolo();
+            StickRegionListener.selectedRegionMap.remove(p.getUniqueId());
         }
     }
 }

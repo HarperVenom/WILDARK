@@ -47,9 +47,9 @@ public class GeneralListener implements Listener {
                 StickRegionListener.regionMap.get(p.getUniqueId()).removeHolo();
                 StickRegionListener.regionMap.remove(p.getUniqueId());
             }
-            if (StickRegionListener.existingRegionMap.containsKey(p.getUniqueId())) {
-                StickRegionListener.existingRegionMap.get(p.getUniqueId()).removeHolo();
-                StickRegionListener.existingRegionMap.remove(p.getUniqueId());
+            if (StickRegionListener.selectedRegionMap.containsKey(p.getUniqueId())) {
+                StickRegionListener.selectedRegionMap.get(p.getUniqueId()).removeHolo();
+                StickRegionListener.selectedRegionMap.remove(p.getUniqueId());
             }
             p.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacy(ChatColor.GRAY + "Режим: "
                     + ChatColor.WHITE + translateMode(stick.getMode())));
