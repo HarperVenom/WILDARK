@@ -17,7 +17,7 @@ public class PlayerListener implements Listener {
     @EventHandler
     public void PlayerJoin(PlayerJoinEvent e) {
         Player p = e.getPlayer();
-        if (!p.hasPlayedBefore()){
+        if (db.players.getPlayer(p.getUniqueId().toString()) == null) {
             db.players.create(p.getUniqueId());
         }
     }

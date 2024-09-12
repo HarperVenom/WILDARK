@@ -1,5 +1,6 @@
 package me.harpervenom.wildark;
 
+import me.harpervenom.wildark.commands.Menu;
 import me.harpervenom.wildark.database.Database;
 import me.harpervenom.wildark.listeners.*;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -37,6 +38,9 @@ public final class WILDARK extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new BlockListener(db), this);
         getServer().getPluginManager().registerEvents(new PlayerListener(db), this);
 
+
+        this.getCommand("m").setExecutor(new Menu(db));
+        getServer().getPluginManager().registerEvents(new Menu(db), this);
     }
 
     @Override

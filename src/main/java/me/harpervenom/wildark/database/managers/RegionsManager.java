@@ -4,7 +4,6 @@ import me.harpervenom.wildark.classes.Region;
 import org.bukkit.Bukkit;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
-import sun.tools.jconsole.JConsole;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -115,7 +114,7 @@ public class RegionsManager {
     }
 
 
-    private List<Region> getPlayerRegions(Player p) {
+    public List<Region> getPlayerRegions(Player p) {
         String query = "SELECT * FROM players_regions WHERE player_id = ?";
         String regionsQuery = "SELECT * FROM regions WHERE id = ?";
 
@@ -129,14 +128,14 @@ public class RegionsManager {
                     String playerId = rs.getString("player_id");
 
                     try (PreparedStatement regionsPs = connection.prepareStatement(regionsQuery)) {
-                        ps.setInt(1,region_id);
+                        regionsPs.setInt(1,region_id);
 
                         try (ResultSet regionsRs = regionsPs.executeQuery()) {
                             Region region = new Region(
                                     regionsRs.getInt("id"),
                                     Bukkit.getPlayer(UUID.fromString(playerId)),
-                                    regionsRs.getString("world"),
                                     regionsRs.getString("name"),
+                                    regionsRs.getString("world"),
                                     regionsRs.getInt("x1"),
                                     regionsRs.getInt("z1"),
                                     regionsRs.getInt("x2"),

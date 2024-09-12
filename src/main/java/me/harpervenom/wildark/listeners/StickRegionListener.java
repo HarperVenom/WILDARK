@@ -40,7 +40,6 @@ public class StickRegionListener implements Listener {
         Player p = e.getPlayer();
         Region region = regionMap.get(p.getUniqueId());
         Block b = e.getClickedBlock();
-        if (b == null) return;
 
         if (e.getHand() == EquipmentSlot.OFF_HAND) return;
         ItemStack tool = e.getItem();
@@ -59,7 +58,8 @@ public class StickRegionListener implements Listener {
             if (region != null) {
                 createRegion(p, region);
             }
-        } else if (e.getAction() == Action.LEFT_CLICK_AIR || e.getAction() == Action.LEFT_CLICK_BLOCK) {
+        } else if (e.getAction() == Action.LEFT_CLICK_BLOCK) {
+            if (b == null) return;
             Region existingRegion;
             if (selectedRegionMap.containsKey(p.getUniqueId()) && (selectedRegionMap.get(p.getUniqueId()).contains(b.getX(), b.getZ())
                     || selectedRegionMap.get(p.getUniqueId()).getSelectedCorner() != 0)) {
@@ -120,8 +120,8 @@ public class StickRegionListener implements Listener {
 
         WildPlayer wildPlayer = db.players.getPlayer(p.getUniqueId().toString());
         if (region.areaSelected()) {
-            p.sendMessage("");
-            ChatColor color = wildPlayer.getAvailableBlocks() >= region.getArea() ? ChatColor.WHITE : ChatColor.RED;
+//            p.sendMessage("");
+            ChatColor color = wildPlayer.getAvailableBlocks() >= region.getArea() ? ChatColor.GREEN : ChatColor.RED;
             p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.GRAY + "Участок: " + ChatColor.WHITE + region.getGrid() + ChatColor.GRAY + ". Необходимо блоков: " + color + region.getArea());
 
             if (wildPlayer.getAvailableBlocks() < region.getArea()) {
@@ -140,8 +140,8 @@ public class StickRegionListener implements Listener {
 
         WildPlayer wildPlayer = db.players.getPlayer(p.getUniqueId().toString());
         if (newRegion.areaSelected()) {
-            p.sendMessage("");
-            ChatColor color = wildPlayer.getAvailableBlocks() >= price ? ChatColor.WHITE : ChatColor.RED;
+//            p.sendMessage("");
+            ChatColor color = wildPlayer.getAvailableBlocks() >= price ? ChatColor.GREEN : ChatColor.RED;
             p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.GRAY + "Новый участок: " + ChatColor.WHITE + newRegion.getGrid() + ChatColor.GRAY
                     + (price > 0 ? ". Необходимо блоков: " + color + price : ". Будет возвращено блоков: " + color + (-price)));
 

@@ -1,4 +1,8 @@
 name: WILDARK
-version: '${project.version}'
+version: '1.0'
 main: me.harpervenom.wildark.WILDARK
 api-version: '1.21'
+commands:
+  m:
+    description: Личная информация
+    usage: /m

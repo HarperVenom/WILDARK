@@ -79,10 +79,6 @@ public class Region {
         return name;
     }
 
-    public void setName(String name){
-        this.name = name;
-    }
-
     public int getId() {
         return id;
     }
@@ -117,6 +113,13 @@ public class Region {
     }
     public int getZ4() {
         return z4;
+    }
+
+    public int getWidth() {
+        return Math.abs(x1 - x2);
+    }
+    public int getLength() {
+        return Math.abs(z1 - z2);
     }
 
     public String getWorldName() {
