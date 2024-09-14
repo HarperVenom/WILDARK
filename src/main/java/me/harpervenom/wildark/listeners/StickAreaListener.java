@@ -26,7 +26,6 @@ public class StickAreaListener implements Listener {
     @EventHandler
     public void checkArea(PlayerInteractEvent e) {
         Player p = e.getPlayer();
-//        WildPlayer wildPlayer = db.players.getPlayer(p.getUniqueId().toString());
 
         if (e.getAction() == Action.RIGHT_CLICK_AIR || e.getAction() == Action.RIGHT_CLICK_BLOCK) return;
         if (e.getHand() == EquipmentSlot.OFF_HAND) return;
@@ -41,43 +40,35 @@ public class StickAreaListener implements Listener {
         if (b == null) return;
         Location bLoc = b.getLocation();
 
-
-//        showBlock(bLoc.clone().add(0.5,0.5,0.5),10);
         scanArea(p, bLoc,3);
-
-
-
     }
 
     public void scanArea(Player p ,Location loc, int radius) {
+        db.regions.scanArea(loc.getWorld().getName(), loc.getBlockX(), loc.getBlockZ(), radius).thenAccept(regions -> {
+            int minX = loc.getBlockX() - radius;
+            int maxX = loc.getBlockX() + radius;
+            int minZ = loc.getBlockZ() - radius;
+            int maxZ = loc.getBlockZ() + radius;
 
-        List<Region> regions = db.regions.scanArea(loc.getWorld().getName(), loc.getBlockX(), loc.getBlockZ(),5);
+            for (int i = minX; i <= maxX; i++) {
+                for (int j = minZ; j <= maxZ; j++) {
+                    Color color = Color.GRAY;
 
-
-
-        int minX = loc.getBlockX() - radius;
-        int maxX = loc.getBlockX() + radius;
-        int minZ = loc.getBlockZ() - radius;
-        int maxZ = loc.getBlockZ() + radius;
-
-        for (int i = minX; i <= maxX; i++) {
-            for (int j = minZ; j <= maxZ; j++) {
-                Color color = Color.GRAY;
-
-                for (Region region : regions) {
-                    if (region.contains(i,j)) {
-                        if (region.getOwner().equals(p)) color = Color.LIME;
-                        else color = Color.RED;
+                    for (Region region : regions) {
+                        if (region.contains(i,j)) {
+                            if (region.getOwner().equals(p)) color = Color.LIME;
+                            else color = Color.RED;
+                        }
                     }
-                }
 
-                showBlock(new Location(loc.getWorld(),i,loc.getY(),j).add(0.5,0.5,0.5), 10, color);
+                    showBlock(new Location(loc.getWorld(),i,loc.getY(),j).add(0.5,0.5,0.5), 10, color);
+                }
             }
-        }
+        });
     }
 
     public void showBlock(Location center, int count, Color color) {
-        float offset = 0.5f; // Half-block offset for each axis
+        float offset = 0.5f;
 
         for (int i = 0; i < count; i++) {
             double x = center.getX() + (Math.random() * 2 - 1) * offset;

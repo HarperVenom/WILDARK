@@ -1,6 +1,7 @@
 package me.harpervenom.wildark.listeners;
 
 import me.harpervenom.wildark.classes.RegionStick;
+import me.harpervenom.wildark.classes.WildPlayer;
 import me.harpervenom.wildark.database.Database;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
@@ -53,9 +54,7 @@ public class GeneralListener implements Listener {
             }
             p.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacy(ChatColor.GRAY + "Режим: "
                     + ChatColor.WHITE + translateMode(stick.getMode())));
-//            p.playSound(p.getLocation(), Sound.ITEM_SPYGLASS_USE ,0.5f,3f);
         }
-//
     }
 
     public String translateMode(String mode) {

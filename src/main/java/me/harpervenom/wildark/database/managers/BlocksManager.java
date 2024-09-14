@@ -1,8 +1,14 @@
 package me.harpervenom.wildark.database.managers;
 
+import me.harpervenom.wildark.classes.WildBlock;
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.block.Block;
 
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 public class BlocksManager {
 
@@ -26,43 +32,75 @@ public class BlocksManager {
 
     }
 
-    public boolean logBlock(String playerUUID, int x, int y, int z, String world) {
-        String sql = "INSERT INTO blocks (owner_id, x, y, z, world) VALUES " +
-                "(?, ?, ?, ?, ?)";
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
-            ps.setString(1, playerUUID);
-            ps.setInt(2,x);
-            ps.setInt(3,y);
-            ps.setInt(4,z);
-            ps.setString(5, world);
-            ps.executeUpdate();
-            return true;
-        }catch (SQLException e) {
-            e.printStackTrace();
-            return false;
-        }
+    public CompletableFuture<Boolean> logBlock(String playerUUID, int x, int y, int z, String world) {
+        return CompletableFuture.supplyAsync(() -> {
+            String sql = "INSERT INTO blocks (owner_id, x, y, z, world) VALUES " +
+                    "(?, ?, ?, ?, ?)";
+            try (PreparedStatement ps = connection.prepareStatement(sql)) {
+                ps.setString(1, playerUUID);
+                ps.setInt(2,x);
+                ps.setInt(3,y);
+                ps.setInt(4,z);
+                ps.setString(5, world);
+                ps.executeUpdate();
+                return true;
+            }catch (SQLException e) {
+                e.printStackTrace();
+                return false;
+            }
+        });
     }
 
-    public String getOwner(Block b) {
-        int x = b.getX();
-        int y = b.getY();
-        int z = b.getZ();
-        String world = b.getWorld().getName();
-        String sql = "SELECT owner_id FROM blocks WHERE x = ? AND y = ? AND z = ? AND world = ?";
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
-            ps.setInt(1, x);
-            ps.setInt(2, y);
-            ps.setInt(3, z);
-            ps.setString(4, world);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    return rs.getString("owner_id");
+    public CompletableFuture<String> getOwner(Block b) {
+        return CompletableFuture.supplyAsync(() -> {
+            int x = b.getX();
+            int y = b.getY();
+            int z = b.getZ();
+            String world = b.getWorld().getName();
+            String sql = "SELECT owner_id FROM blocks WHERE x = ? AND y = ? AND z = ? AND world = ?";
+            try (PreparedStatement ps = connection.prepareStatement(sql)) {
+                ps.setInt(1, x);
+                ps.setInt(2, y);
+                ps.setInt(3, z);
+                ps.setString(4, world);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        return rs.getString("owner_id");
+                    }
                 }
+            } catch (SQLException e) {
+                e.printStackTrace();
             }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return null;
+            return null;
+        });
+    }
+
+    public CompletableFuture<List<WildBlock>> getWildBlocks(int x1, int z1, int x2, int z2, String world) {
+        return CompletableFuture.supplyAsync(() -> {
+            String sql = "SELECT * FROM blocks WHERE x BETWEEN ? AND ? AND z BETWEEN ? AND ? AND world = ?";
+            List<WildBlock> blocks = new ArrayList<>();
+
+            try (PreparedStatement ps = connection.prepareStatement(sql)) {
+                ps.setInt(1, Math.min(x1, x2));
+                ps.setInt(2, Math.max(x1, x2));
+                ps.setInt(3, Math.min(z1, z2));
+                ps.setInt(4, Math.max(z1, z2));
+                ps.setString(5, world);
+
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        WildBlock block = new WildBlock(new Location(Bukkit.getWorld(rs.getString("world")), rs.getInt("x"),
+                                rs.getInt("y"),
+                                rs.getInt("z")), rs.getString("owner_id"));
+
+                        blocks.add(block);
+                    }
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+            return blocks;
+        });
     }
 
     public void deleteBlockRecord(Block b) {

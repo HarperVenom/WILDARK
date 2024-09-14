@@ -1,8 +1,8 @@
 package me.harpervenom.wildark.listeners;
 
-import me.harpervenom.wildark.WILDARK;
-import me.harpervenom.wildark.classes.HoloBlock;
+import me.harpervenom.wildark.classes.Region;
 import me.harpervenom.wildark.classes.RegionStick;
+import me.harpervenom.wildark.classes.WildBlock;
 import me.harpervenom.wildark.database.Database;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
@@ -15,7 +15,8 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.scheduler.BukkitRunnable;
+
+import java.util.List;
 
 public class StickBlockListener implements Listener {
 
@@ -29,7 +30,6 @@ public class StickBlockListener implements Listener {
     public void StickUseEvent(PlayerInteractEvent e) {
         Player p = e.getPlayer();
         Block b = e.getClickedBlock();
-
         if (b == null) return;
 
         if (e.getAction() == Action.RIGHT_CLICK_AIR || e.getAction() == Action.RIGHT_CLICK_BLOCK
@@ -47,17 +47,61 @@ public class StickBlockListener implements Listener {
         RegionStick stick = GeneralListener.regionStickMap.get(p.getUniqueId());
         if (!stick.getMode().equals("Block")) return;
 
-        String blockOwnerID = db.blocks.getOwner(b);
-        showInfo(blockOwnerID, p);
+        showInfo(b, p);
     }
 
-    public void showInfo(String blockOwnerID, Player p) {
-        if (blockOwnerID == null) {
-            p.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacy(ChatColor.GRAY + "Не защищено."));
+    public void showInfo(Block b, Player p) {
+        Chunk chunk = b.getChunk();
+
+        if (!BlockListener.wildBlocks.containsKey(chunk) || !BlockListener.wildRegions.containsKey(chunk)){
+            p.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(ChatColor.RED + "Не прогружено"));
+            BlockListener.loadWildChunks(chunk);
         } else {
-            ChatColor color = blockOwnerID.equals(p.getUniqueId().toString()) ? ChatColor.GREEN : ChatColor.RED;
-            p.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacy(color + "Защищено."));
-//            p.playSound(p.getLocation(), Sound.ENTITY_BLAZE_HURT,0.2f,1f);
+            Region region = BlockListener.getBlockRegion(b);
+            WildBlock wildBlock = BlockListener.getWildBlock(b);
+
+            if (wildBlock == null) {
+                p.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(ChatColor.GRAY + "Не защищено"));
+                return;
+            }
+            if (region == null){
+                p.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(ChatColor.GRAY + "Не защищено"));
+                return;
+            }
+
+            ChatColor color = wildBlock.getOwnerId().equals(p.getUniqueId().toString()) ? ChatColor.GREEN : ChatColor.RED;
+            p.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacy(color + "Защищено"));
         }
+
+//        Chunk chunk = b.getChunk();
+//
+//        WildBlock wildBlock = BlockListener.getWildBlock(b);
+//
+//        if (BlockListener.wildBlocks.containsKey(chunk)) {
+//            List<WildBlock> wildBlocks = BlockListener.wildBlocks.get(chunk);
+//
+//            if (wildBlocks.isEmpty()) {
+//                p.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacy(ChatColor.GRAY + "Не защищено"));
+//                return;
+//            }
+//
+//            for (WildBlock wildBlock : wildBlocks) {
+//                if (!wildBlock.getLoc().equals(b.getLocation())) continue;
+//
+//                String ownerId = wildBlock.getOwnerId();
+//
+//                if (ownerId == null) {
+//                    p.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacy(ChatColor.GRAY + "Не защищено"));
+//                } else {
+//                    ChatColor color = ownerId.equals(p.getUniqueId().toString()) ? ChatColor.GREEN : ChatColor.RED;
+//                    p.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacy(color + "Защищено"));
+//                }
+//                return;
+//            }
+//            p.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacy(ChatColor.GRAY + "Не защищено"));
+//        } else {
+//            p.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(ChatColor.RED + "Не прогружено"));
+//            BlockListener.loadWildChunks(chunk);
+//        }
     }
 }

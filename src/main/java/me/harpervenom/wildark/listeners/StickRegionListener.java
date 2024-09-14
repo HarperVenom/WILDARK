@@ -20,8 +20,14 @@ import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
+
+import static me.harpervenom.wildark.listeners.BlockListener.*;
+import static me.harpervenom.wildark.listeners.PlayerListener.getWildPlayer;
 
 public class StickRegionListener implements Listener {
 
@@ -60,12 +66,20 @@ public class StickRegionListener implements Listener {
             }
         } else if (e.getAction() == Action.LEFT_CLICK_BLOCK) {
             if (b == null) return;
+
+            Chunk chunk = b.getChunk();
+            if (!wildRegions.containsKey(chunk)) {
+                p.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(ChatColor.RED + "Не прогружено"));
+                loadWildChunks(chunk);
+                return;
+            }
+
             Region existingRegion;
             if (selectedRegionMap.containsKey(p.getUniqueId()) && (selectedRegionMap.get(p.getUniqueId()).contains(b.getX(), b.getZ())
                     || selectedRegionMap.get(p.getUniqueId()).getSelectedCorner() != 0)) {
                 existingRegion = selectedRegionMap.get(p.getUniqueId());
             } else {
-                existingRegion = db.regions.getBlockRegion(b);
+                existingRegion = getBlockRegion(b);
             }
 
             if (existingRegion != null) {
@@ -118,14 +132,13 @@ public class StickRegionListener implements Listener {
     public void checkRegion(Player p) {
         Region region = regionMap.get(p.getUniqueId());
 
-        WildPlayer wildPlayer = db.players.getPlayer(p.getUniqueId().toString());
+        WildPlayer wildPlayer = getWildPlayer(p);
         if (region.areaSelected()) {
-//            p.sendMessage("");
             ChatColor color = wildPlayer.getAvailableBlocks() >= region.getArea() ? ChatColor.GREEN : ChatColor.RED;
             p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.GRAY + "Участок: " + ChatColor.WHITE + region.getGrid() + ChatColor.GRAY + ". Необходимо блоков: " + color + region.getArea());
 
             if (wildPlayer.getAvailableBlocks() < region.getArea()) {
-                p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.GRAY + "У вас недостаточно блоков.");
+                p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.RED + "У вас недостаточно блоков.");
             } else {
                 p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.GRAY + "ШИФТ + ПКМ чтобы создать");
             }
@@ -138,15 +151,14 @@ public class StickRegionListener implements Listener {
 
         int price = getPrice(oldRegion, newRegion);
 
-        WildPlayer wildPlayer = db.players.getPlayer(p.getUniqueId().toString());
+        WildPlayer wildPlayer = getWildPlayer(p);
         if (newRegion.areaSelected()) {
-//            p.sendMessage("");
             ChatColor color = wildPlayer.getAvailableBlocks() >= price ? ChatColor.GREEN : ChatColor.RED;
             p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.GRAY + "Новый участок: " + ChatColor.WHITE + newRegion.getGrid() + ChatColor.GRAY
                     + (price > 0 ? ". Необходимо блоков: " + color + price : ". Будет возвращено блоков: " + color + (-price)));
 
             if (price > 0 && wildPlayer.getAvailableBlocks() < price) {
-                p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.GRAY + "У вас недостаточно блоков.");
+                p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.RED + "У вас недостаточно блоков.");
             } else {
                 p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.GRAY + "ШИФТ + ПКМ чтобы обновить границы.");
             }
@@ -187,27 +199,43 @@ public class StickRegionListener implements Listener {
     }
 
     public void createRegion(Player p, Region region) {
-        WildPlayer wildPlayer = db.players.getPlayer(p.getUniqueId().toString());
+        WildPlayer wildPlayer = getWildPlayer(p);
         if (wildPlayer.getAvailableBlocks() < region.getArea()) {
-            p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.GRAY + "У вас недостаточно блоков.");
+            p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.RED + "У вас недостаточно блоков.");
             return;
         }
 
-        String regionStatus = db.regions.regionStatus(region);
-
-        if (regionStatus.equals("intersect")){
-            p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.GRAY + "Участок пересекается с другими.");
-            return;
-        } else if (regionStatus.equals("close")) {
-            p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.GRAY + "Рядом участок больше вашего.");
+        if (wildPlayer.getAvailableRegions() < 1){
+            p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.RED + "У вас максимальное число участков.");
             return;
         }
 
-        db.regions.createRegion(region);
-        p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.GREEN + "Вы создали регион.");
-        p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.GRAY + "Потрачено блоков: "
-                + ChatColor.WHITE + (region.getArea()) + ChatColor.GRAY + ".");
-        clearRegionMap(p);
+        db.regions.regionStatus(region).thenAccept(regionStatus -> {
+            if (regionStatus.equals("intersect")){
+                p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.RED + "Участок пересекается с другими.");
+                return;
+            } else if (regionStatus.equals("close")) {
+                p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.RED + "Рядом участок больше вашего.");
+                return;
+            }
+
+            db.regions.createRegion(region).thenAccept((isCreated) -> {
+
+                Chunk chunk = p.getLocation().getChunk();
+                List<Region> newRegions = new ArrayList<>(wildRegions.get(chunk));
+                newRegions.add(region);
+                wildRegions.put(chunk, newRegions);
+
+                int price = region.getArea();
+
+                db.players.updateAvailableRegions(p, -1);
+                db.players.updateAvailableBlock(p,-price);
+                p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.GREEN + "Вы создали регион.");
+                p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.GRAY + "Потрачено блоков: "
+                        + ChatColor.WHITE + (price) + ChatColor.GRAY + ".");
+                clearRegionMap(p);
+            });
+        });
     }
 
     public void updateRegion(Player p) {
@@ -216,36 +244,55 @@ public class StickRegionListener implements Listener {
 
         int price = getPrice(oldRegion, newRegion);
 
-        WildPlayer wildPlayer = db.players.getPlayer(p.getUniqueId().toString());
+        WildPlayer wildPlayer = getWildPlayer(p);
 
         if (price > 0 && wildPlayer.getAvailableBlocks() < price) {
-            p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.GRAY + "У вас недостаточно блоков.");
+            p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.RED + "У вас недостаточно блоков.");
             return;
         }
 
-        String regionStatus = db.regions.regionStatus(newRegion);
+        db.regions.regionStatus(newRegion).thenAccept(regionStatus -> Bukkit.getScheduler().runTask(WILDARK.getPlugin(), () -> {
+            if (regionStatus.equals("intersect")){
+                p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.RED + "Участок пересекается с другими.");
+                return;
+            } else if (regionStatus.equals("close")) {
+                p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.RED + "Рядом участок больше вашего.");
+                return;
+            }
 
-        if (regionStatus.equals("intersect")){
-            p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.GRAY + "Участок пересекается с другими.");
-            return;
-        } else if (regionStatus.equals("close")) {
-            p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.GRAY + "Рядом участок больше вашего.");
-            return;
-        }
+            db.regions.updateRegion(newRegion).thenAccept(updated -> Bukkit.getScheduler().runTask(WILDARK.getPlugin(), () -> {{
+                if (!updated) {
+                    p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.RED + "Не удалось обновить регион.");
+                    return;
+                }
 
-        p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.GREEN + "Вы обновили регион.");
+                newRegion.getChunks().stream().forEach(chunk -> {
+                    if (!wildRegions.containsKey(chunk)) return;
 
-        if (price < 0){
-            p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.GRAY + "Возвращено блоков: "
-                    + ChatColor.WHITE + (-price) + ChatColor.GRAY + ".");
-        } else {
-            p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.GRAY + "Потрачено блоков: "
-                    + ChatColor.WHITE + (price) + ChatColor.GRAY + ".");
-        }
+                    List<Region> updatedRegions = new ArrayList<>(wildRegions.get(chunk));
+                    updatedRegions = updatedRegions.stream().filter(region -> region.getId() != oldRegion.getId()).collect(Collectors.toList());
+                    updatedRegions.add(newRegion);
+                    wildRegions.put(chunk, updatedRegions);
+                });
 
-        boolean updated = db.regions.updateRegion(newRegion);
-        clearExistingRegionMap(p);
-        clearRegionMap(p);
+                db.players.updateAvailableBlock(p,-price);
+
+                p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.GREEN + "Вы обновили регион.");
+
+                newRegion.removeSelectedCorner();
+
+                if (price < 0){
+                    p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.GRAY + "Возвращено блоков: "
+                            + ChatColor.WHITE + (-price) + ChatColor.GRAY + ".");
+                } else {
+                    p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.GRAY + "Потрачено блоков: "
+                            + ChatColor.WHITE + (price) + ChatColor.GRAY + ".");
+                }
+
+                clearExistingRegionMap(p);
+                clearRegionMap(p);
+            }}));
+        }));
     }
 
     public void selectRegion(Player p, Region region, Block b) {
@@ -278,10 +325,9 @@ public class StickRegionListener implements Listener {
                 }
             }
             if (!regionMap.containsKey(p.getUniqueId())){
-                Region newRegion = new Region(p,b.getWorld().getName(), oppositeX, oppositeZ);
-                newRegion.setId(selectedRegionMap.get(p.getUniqueId()).getId());
-                newRegion.setSecondCorner(b.getX(), b.getZ());
+                Region newRegion = new Region(region.getId(), p, region.getName(), b.getWorld().getName(), oppositeX, oppositeZ, b.getX(), b.getZ());
                 newRegion.selectCorner(b.getX(), b.getZ());
+
                 regionMap.put(p.getUniqueId(), newRegion);
                 checkNewRegion(p);
             } else {
@@ -296,12 +342,13 @@ public class StickRegionListener implements Listener {
 
         if (selectedRegionMap.containsKey(p.getUniqueId()) && selectedRegionMap.get(p.getUniqueId()).getName().equals(region.getName())){
             Region existing = selectedRegionMap.get(p.getUniqueId());
-            existing.selectCorner(b.getX(), b.getZ());
-            p.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacy(ChatColor.YELLOW +  "Угол выбран."));
+            boolean selected = existing.selectCorner(b.getX(), b.getZ());
+            if (selected) p.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacy(ChatColor.YELLOW + "Угол выбран."));
             return;
         }
 
         p.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacy(ChatColor.YELLOW + "Участок выделен."));
+        region.setColor("blue");
         selectedRegionMap.put(p.getUniqueId(), region);
         region.showHolo();
         clearRegionMap(p);

@@ -1,16 +1,21 @@
 package me.harpervenom.wildark.classes;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Chunk;
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.entity.Player;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class Region {
 
     private String name;
     private int id;
 //    private Region oldRegion;
-    private int selectedX;
-    private int selectedZ;
+    private Integer selectedX;
+    private Integer selectedZ;
 
     String color = "white";
 
@@ -49,7 +54,7 @@ public class Region {
         showHolo();
     }
 
-    public Region(int id, Player p, String name, String worldName, int x1, int z1, int x2, int z2, String color) {
+    public Region(int id, Player p, String name, String worldName, int x1, int z1, int x2, int z2) {
         this.id = id;
         this.p = p;
         this.worldName = worldName;
@@ -77,6 +82,10 @@ public class Region {
     }
     public String getName() {
         return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 
     public int getId() {
@@ -116,14 +125,18 @@ public class Region {
     }
 
     public int getWidth() {
-        return Math.abs(x1 - x2);
+        return Math.abs(x1 - x2) + 1;
     }
     public int getLength() {
-        return Math.abs(z1 - z2);
+        return Math.abs(z1 - z2) + 1;
     }
 
     public String getWorldName() {
         return worldName;
+    }
+
+    public void setColor(String color) {
+        this.color = color;
     }
 
     public void setFirstCorner(int x, int z){
@@ -154,14 +167,22 @@ public class Region {
         showHolo();
     }
 
-    public void selectCorner(int x, int z) {
-        if ((x != x1 && z != z1) && (x != x2 && z != z2) && (x != x3 && z != z3) && (x != x4 && z != z4)) return;
+    public boolean selectCorner(int x, int z) {
+        if ((x != x1 && z != z1) && (x != x2 && z != z2) && (x != x3 && z != z3) && (x != x4 && z != z4)) return false;
         selectedX = x;
         selectedZ = z;
         showHolo();
+        return true;
+    }
+
+    public void removeSelectedCorner() {
+        selectedX = null;
+        selectedZ = null;
     }
 
     public int getSelectedCorner() {
+        if (selectedX == null || selectedZ == null) return 0;
+
         if (selectedX == x1 && selectedZ == z1) return 1;
         if (selectedX == x2 && selectedZ == z2) return 2;
         if (selectedX == x3 && selectedZ == z3) return 3;
@@ -216,6 +237,26 @@ public class Region {
         int maxZ = Math.max(z1, z2);
 
         return (x >= minX && x <= maxX && z >= minZ && z <= maxZ);
+    }
+
+    public List<Chunk> getChunks() {
+        List<Chunk> chunks = new ArrayList<>();
+        World world = Bukkit.getWorld(worldName);
+
+        // Calculate the chunk boundaries based on the region's coordinates
+        int minChunkX = Math.min(x1, x2) / 16;
+        int maxChunkX = Math.max(x1, x2) / 16;
+        int minChunkZ = Math.min(z1, z2) / 16;
+        int maxChunkZ = Math.max(z1, z2) / 16;
+
+        // Iterate over all chunks that the region spans and add them to the list
+        for (int chunkX = minChunkX; chunkX <= maxChunkX; chunkX++) {
+            for (int chunkZ = minChunkZ; chunkZ <= maxChunkZ; chunkZ++) {
+                chunks.add(world.getChunkAt(chunkX, chunkZ));
+            }
+        }
+
+        return chunks;
     }
 
     public void removeHolo() {
