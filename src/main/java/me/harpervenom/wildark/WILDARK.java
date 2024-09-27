@@ -37,7 +37,7 @@ public final class WILDARK extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new GeneralListener(db), this);
         getServer().getPluginManager().registerEvents(new BlockListener(db), this);
         getServer().getPluginManager().registerEvents(new PlayerListener(db), this);
-
+        getServer().getPluginManager().registerEvents(new WildChunksListener(db), this);
 
         this.getCommand("m").setExecutor(new Menu(db));
         getServer().getPluginManager().registerEvents(new Menu(db), this);

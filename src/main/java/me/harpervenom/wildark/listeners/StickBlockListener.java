@@ -16,7 +16,7 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 
-import java.util.List;
+import static me.harpervenom.wildark.listeners.WildChunksListener.*;
 
 public class StickBlockListener implements Listener {
 
@@ -53,9 +53,9 @@ public class StickBlockListener implements Listener {
     public void showInfo(Block b, Player p) {
         Chunk chunk = b.getChunk();
 
-        if (!BlockListener.wildBlocks.containsKey(chunk) || !BlockListener.wildRegions.containsKey(chunk)){
+        if (!wildBlocks.containsKey(chunk) || !wildRegions.containsKey(chunk)){
             p.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(ChatColor.RED + "Не прогружено"));
-            BlockListener.loadWildChunks(chunk);
+            loadWildChunks(getActiveChunks(chunk));
         } else {
             Region region = BlockListener.getBlockRegion(b);
             WildBlock wildBlock = BlockListener.getWildBlock(b);
@@ -72,36 +72,5 @@ public class StickBlockListener implements Listener {
             ChatColor color = wildBlock.getOwnerId().equals(p.getUniqueId().toString()) ? ChatColor.GREEN : ChatColor.RED;
             p.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacy(color + "Защищено"));
         }
-
-//        Chunk chunk = b.getChunk();
-//
-//        WildBlock wildBlock = BlockListener.getWildBlock(b);
-//
-//        if (BlockListener.wildBlocks.containsKey(chunk)) {
-//            List<WildBlock> wildBlocks = BlockListener.wildBlocks.get(chunk);
-//
-//            if (wildBlocks.isEmpty()) {
-//                p.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacy(ChatColor.GRAY + "Не защищено"));
-//                return;
-//            }
-//
-//            for (WildBlock wildBlock : wildBlocks) {
-//                if (!wildBlock.getLoc().equals(b.getLocation())) continue;
-//
-//                String ownerId = wildBlock.getOwnerId();
-//
-//                if (ownerId == null) {
-//                    p.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacy(ChatColor.GRAY + "Не защищено"));
-//                } else {
-//                    ChatColor color = ownerId.equals(p.getUniqueId().toString()) ? ChatColor.GREEN : ChatColor.RED;
-//                    p.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacy(color + "Защищено"));
-//                }
-//                return;
-//            }
-//            p.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacy(ChatColor.GRAY + "Не защищено"));
-//        } else {
-//            p.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(ChatColor.RED + "Не прогружено"));
-//            BlockListener.loadWildChunks(chunk);
-//        }
     }
 }

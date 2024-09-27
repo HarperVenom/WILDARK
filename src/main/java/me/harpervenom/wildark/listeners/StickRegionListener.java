@@ -28,6 +28,7 @@ import java.util.stream.Collectors;
 
 import static me.harpervenom.wildark.listeners.BlockListener.*;
 import static me.harpervenom.wildark.listeners.PlayerListener.getWildPlayer;
+import static me.harpervenom.wildark.listeners.WildChunksListener.*;
 
 public class StickRegionListener implements Listener {
 
@@ -70,7 +71,7 @@ public class StickRegionListener implements Listener {
             Chunk chunk = b.getChunk();
             if (!wildRegions.containsKey(chunk)) {
                 p.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(ChatColor.RED + "Не прогружено"));
-                loadWildChunks(chunk);
+                loadWildChunks(getActiveChunks(chunk));
                 return;
             }
 
