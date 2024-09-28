@@ -44,9 +44,10 @@ public class RegionsManager {
         }
     }
 
-    public CompletableFuture<Boolean> createRegion(Region region) {
+    public CompletableFuture<Region> createRegion(Region region) {
         Player p = region.getOwner();
         return getPlayerRegions(p).thenCompose(ownRegions -> CompletableFuture.supplyAsync(() -> {
+            String regionName = p.getName() + (!ownRegions.isEmpty() ? "(" + ownRegions.size() + ")" : "");
 
             String regionSql = "INSERT INTO regions (name, x1, z1, x2, z2, world) VALUES " +
                     "(?, ?, ?, ?, ?, ?)";
@@ -59,7 +60,7 @@ public class RegionsManager {
             int z2 = Math.max(region.getZ1(), region.getZ2());
 
             try (PreparedStatement psRegion = connection.prepareStatement(regionSql, Statement.RETURN_GENERATED_KEYS)) {
-                psRegion.setString(1, p.getName() + (!ownRegions.isEmpty() ? "(" + ownRegions.size() + ")" : ""));
+                psRegion.setString(1, regionName);
                 psRegion.setInt(2, x1);
                 psRegion.setInt(3, z1);
                 psRegion.setInt(4, x2);
@@ -67,9 +68,9 @@ public class RegionsManager {
                 psRegion.setString(6, region.getWorldName());
                 psRegion.executeUpdate();
 
-                try (ResultSet generatedKeys = psRegion.getGeneratedKeys()) {
-                    if (generatedKeys.next()) {
-                        int regionId = generatedKeys.getInt(1);
+                try (ResultSet rs = psRegion.getGeneratedKeys()) {
+                    if (rs.next()) {
+                        int regionId = rs.getInt(1);
 
                         try (PreparedStatement psRelation = connection.prepareStatement(relationSql)) {
                             psRelation.setString(1, p.getUniqueId().toString());
@@ -77,14 +78,23 @@ public class RegionsManager {
                             psRelation.setString(3, "owner");
                             psRelation.executeUpdate();
                         }
+
+                        return new Region(
+                                regionId, p,
+                                regionName,
+                                region.getWorldName(),
+                                region.getX1(),
+                                region.getZ1(),
+                                region.getX2(),
+                                region.getZ2()
+                        );
                     } else {
                         throw new SQLException("Creating player_region relation failed, no ID obtained.");
                     }
                 }
-                return true;
             } catch (SQLException e) {
                 e.printStackTrace();
-                return false;
+                return null;
             }
         }));
     }

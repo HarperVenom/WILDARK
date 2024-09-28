@@ -220,18 +220,18 @@ public class StickRegionListener implements Listener {
                 return;
             }
 
-            db.regions.createRegion(region).thenAccept((isCreated) -> {
+            db.regions.createRegion(region).thenAccept((createdRegion) -> {
+                for (Chunk chunk : createdRegion.getChunks()) {
+                    List<Region> newRegions = new ArrayList<>(wildRegions.get(chunk));
+                    newRegions.add(createdRegion);
+                    wildRegions.put(chunk, newRegions);
+                }
 
-                Chunk chunk = p.getLocation().getChunk();
-                List<Region> newRegions = new ArrayList<>(wildRegions.get(chunk));
-                newRegions.add(region);
-                wildRegions.put(chunk, newRegions);
-
-                int price = region.getArea();
+                int price = createdRegion.getArea();
 
                 db.players.updateAvailableRegions(p, -1);
                 db.players.updateAvailableBlock(p,-price);
-                p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.GREEN + "Вы создали регион.");
+                p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.GREEN + "Вы создали участок.");
                 p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.GRAY + "Потрачено блоков: "
                         + ChatColor.WHITE + (price) + ChatColor.GRAY + ".");
                 clearRegionMap(p);
