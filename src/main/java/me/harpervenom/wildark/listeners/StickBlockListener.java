@@ -16,6 +16,8 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 
+import static me.harpervenom.wildark.Materials.getMaxBlockHealth;
+import static me.harpervenom.wildark.listeners.BlockListener.damagedBlocks;
 import static me.harpervenom.wildark.listeners.WildChunksListener.*;
 
 public class StickBlockListener implements Listener {
@@ -69,8 +71,14 @@ public class StickBlockListener implements Listener {
                 return;
             }
 
+            int maxBlockHealth = getMaxBlockHealth(b);
+            int health = maxBlockHealth;
+            if (damagedBlocks.containsKey(b)) {
+                health = damagedBlocks.get(b);
+            }
+
             ChatColor color = wildBlock.getOwnerId().equals(p.getUniqueId().toString()) ? ChatColor.GREEN : ChatColor.RED;
-            p.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacy(color + "Защищено"));
+            p.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacy(color + "Защищено" + " " + health + "/" + maxBlockHealth));
         }
     }
 }

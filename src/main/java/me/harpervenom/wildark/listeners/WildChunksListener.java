@@ -120,8 +120,6 @@ public class WildChunksListener implements Listener {
     }
 
     private void scheduleChunkUnload(Chunk chunk) {
-        // Create a delayed task to unload the chunk
-        // Delay in seconds to unload chunk (e.g., 5 mins)
         int UNLOAD_DELAY = 60;
         BukkitTask unloadTask = new BukkitRunnable() {
             @Override

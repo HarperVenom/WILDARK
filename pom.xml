@@ -91,5 +91,11 @@
             <artifactId>sqlite-jdbc</artifactId>
             <version>3.46.0.0</version>
         </dependency>
+        <dependency>
+            <groupId>org.spigotmc</groupId>
+            <artifactId>spigot</artifactId>
+            <version>1.21-R0.1-SNAPSHOT</version> <!-- Replace with your Minecraft version -->
+            <scope>provided</scope>
+        </dependency>
     </dependencies>
 </project>

@@ -263,7 +263,7 @@ public class StickRegionListener implements Listener {
 
             db.regions.updateRegion(newRegion).thenAccept(updated -> Bukkit.getScheduler().runTask(WILDARK.getPlugin(), () -> {{
                 if (!updated) {
-                    p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.RED + "Не удалось обновить регион.");
+                    p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.RED + "Не удалось обновить участок.");
                     return;
                 }
 
@@ -278,7 +278,7 @@ public class StickRegionListener implements Listener {
 
                 db.players.updateAvailableBlock(p,-price);
 
-                p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.GREEN + "Вы обновили регион.");
+                p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.GREEN + "Вы обновили участок.");
 
                 newRegion.removeSelectedCorner();
 

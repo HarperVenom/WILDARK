@@ -20,7 +20,7 @@ import java.util.UUID;
 
 public class GeneralListener implements Listener {
 
-    private Database db;
+    private final Database db;
 
     public GeneralListener(Database db) {
         this.db = db;

@@ -26,8 +26,6 @@ public final class WILDARK extends JavaPlugin {
         db = new Database();
         db.init();
 
-        System.out.println("WILDDARK запущен.");
-
         getServer().getPluginManager().registerEvents(new GeneralListener(db), this);
 
         getServer().getPluginManager().registerEvents(new StickBlockListener(db), this);
@@ -41,6 +39,8 @@ public final class WILDARK extends JavaPlugin {
 
         this.getCommand("m").setExecutor(new Menu(db));
         getServer().getPluginManager().registerEvents(new Menu(db), this);
+
+        System.out.println("WILDDARK запущен.");
     }
 
     @Override
