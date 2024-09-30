@@ -8,7 +8,12 @@ import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.*;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
+import org.bukkit.block.data.Bisected;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.block.data.type.Bed;
+import org.bukkit.block.data.type.Door;
+import org.bukkit.block.data.type.PistonHead;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -44,18 +49,34 @@ public class BlockListener implements Listener {
             return;
         }
 
+        saveBlock(e, p, b);
+
+        if (b instanceof Bed bed) {
+            BlockFace facing = bed.getFacing();
+            Block bedTop = b.getRelative(facing);
+
+            saveBlock(e, p, bedTop);
+        }
+
+    }
+
+    private void saveBlock(BlockPlaceEvent e, Player p, Block b) {
         Chunk chunk = b.getChunk();
 
         String playerUIID = p.getUniqueId().toString();
         int x = b.getX();
         int y = b.getY();
         int z = b.getZ();
-        String world = e.getBlock().getWorld().getName();
+        String world = b.getWorld().getName();
 
         if (wildBlocks.containsKey(chunk)) {
             List<WildBlock> wildBlockList = new ArrayList<>(wildBlocks.get(chunk));
             wildBlockList.add(new WildBlock(b.getLocation(), p.getUniqueId().toString()));
             wildBlocks.put(chunk, wildBlockList);
+        } else {
+            e.setCancelled(true);
+            p.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(ChatColor.RED + "Не прогружено."));
+            return;
         }
 
         db.blocks.logBlock(playerUIID,x,y,z,world).thenAccept(result -> {
@@ -72,7 +93,7 @@ public class BlockListener implements Listener {
 
     @EventHandler
     public void BlockBreakEvent(BlockBreakEvent e) {
-        Block b = e.getBlock();
+        Block b = getMainBlock(e.getBlock());
         Player p = e.getPlayer();
 
         Chunk chunk = b.getChunk();
@@ -141,7 +162,6 @@ public class BlockListener implements Listener {
 
         if (!hasProperTool) {
             p.damage(0.5);
-//            p.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(ChatColor.RED + "Защищено"));
             return false;
         }
 
@@ -202,5 +222,30 @@ public class BlockListener implements Listener {
         }.runTaskLater(WILDARK.getPlugin(), UNLOAD_DELAY * 20L);
 
         restoreHealthTasks.put(b, unloadTask);
+    }
+
+    public static Block getMainBlock(Block b) {
+        BlockData blockData = b.getBlockData();
+        //If Bed
+        if (blockData instanceof Bed bed && bed.getPart() == Bed.Part.HEAD) {
+            BlockFace facing = bed.getFacing();
+            return b.getRelative(facing.getOppositeFace());
+        }
+
+        //If Piston
+        if (blockData instanceof PistonHead pistonHead) {
+            BlockFace facing = pistonHead.getFacing();
+
+            return b.getRelative(facing.getOppositeFace());
+        }
+
+        //If Door
+        if (blockData instanceof Door door) {
+            if (door.getHalf() == Bisected.Half.TOP) {
+                return b.getRelative(BlockFace.DOWN);
+            }
+        }
+
+        return b;
     }
 }

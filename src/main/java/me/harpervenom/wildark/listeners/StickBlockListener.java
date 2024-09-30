@@ -18,6 +18,7 @@ import org.bukkit.inventory.ItemStack;
 
 import static me.harpervenom.wildark.Materials.getMaxBlockHealth;
 import static me.harpervenom.wildark.listeners.BlockListener.damagedBlocks;
+import static me.harpervenom.wildark.listeners.BlockListener.getMainBlock;
 import static me.harpervenom.wildark.listeners.WildChunksListener.*;
 
 public class StickBlockListener implements Listener {
@@ -41,9 +42,7 @@ public class StickBlockListener implements Listener {
         ItemStack tool = e.getItem();
         if (tool == null || tool.getType() != Material.STICK) return;
 
-        if (p.getGameMode() == GameMode.CREATIVE) {
-            e.setCancelled(true);
-        }
+        e.setCancelled(true);
 
         if (!GeneralListener.regionStickMap.containsKey(p.getUniqueId())) return;
         RegionStick stick = GeneralListener.regionStickMap.get(p.getUniqueId());
@@ -53,6 +52,7 @@ public class StickBlockListener implements Listener {
     }
 
     public void showInfo(Block b, Player p) {
+        b = getMainBlock(b);
         Chunk chunk = b.getChunk();
 
         if (!wildBlocks.containsKey(chunk) || !wildRegions.containsKey(chunk)){

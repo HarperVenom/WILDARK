@@ -26,7 +26,7 @@ public class Materials {
         trueBlocks = Arrays.stream(Material.values())
                 .filter(material ->
                         !(
-                                material.name().contains("DOOR") || material.name().contains("CARPET") || material.name().contains("SHULKER")
+                                material.name().contains("CARPET") || material.name().contains("SHULKER")
                                         || material.name().contains("CANDLE") || material.name().contains("VEIN") || material.name().contains("WEB")
                                         || material.name().contains("LICHEN") || material.name().contains("BARREL") || material.name().contains("CHEST")
                                         || material.name().contains("LEAF")
@@ -73,7 +73,7 @@ public class Materials {
         if (type == Material.NETHERITE_BLOCK) return 16;
         if (type == Material.DIAMOND_BLOCK) return 8;
         if (type == Material.OBSIDIAN || type == Material.CRYING_OBSIDIAN
-                || type == Material.IRON_BLOCK) {
+                || type == Material.IRON_BLOCK || type == Material.IRON_DOOR) {
             return 6;
         }
 
