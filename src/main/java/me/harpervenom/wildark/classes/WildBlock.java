@@ -17,6 +17,11 @@ public class WildBlock {
     public Location getLoc(){
         return loc;
     }
+
+    public void setLoc(Location loc) {
+        this.loc = loc;
+    }
+
     public String getOwnerId(){
         return ownerId;
     }

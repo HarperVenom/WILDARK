@@ -18,6 +18,9 @@ import org.bukkit.inventory.ItemStack;
 import java.util.HashMap;
 import java.util.UUID;
 
+import static me.harpervenom.wildark.listeners.StickRegionListener.regionMap;
+import static me.harpervenom.wildark.listeners.StickRegionListener.selectedRegionMap;
+
 public class GeneralListener implements Listener {
 
     private final Database db;
@@ -44,13 +47,15 @@ public class GeneralListener implements Listener {
         } else {
             RegionStick stick = regionStickMap.get(p.getUniqueId());
             stick.switchMode();
-            if (StickRegionListener.regionMap.containsKey(p.getUniqueId())) {
-                StickRegionListener.regionMap.get(p.getUniqueId()).removeHolo();
-                StickRegionListener.regionMap.remove(p.getUniqueId());
+            if (regionMap.containsKey(p.getUniqueId())) {
+                regionMap.get(p.getUniqueId()).removeHolo();
+                regionMap.get(p.getUniqueId()).removeSelectedCorner();
+                regionMap.remove(p.getUniqueId());
             }
-            if (StickRegionListener.selectedRegionMap.containsKey(p.getUniqueId())) {
-                StickRegionListener.selectedRegionMap.get(p.getUniqueId()).removeHolo();
-                StickRegionListener.selectedRegionMap.remove(p.getUniqueId());
+            if (selectedRegionMap.containsKey(p.getUniqueId())) {
+                selectedRegionMap.get(p.getUniqueId()).removeHolo();
+                selectedRegionMap.get(p.getUniqueId()).removeSelectedCorner();
+                selectedRegionMap.remove(p.getUniqueId());
             }
             p.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacy(ChatColor.GRAY + "Режим: "
                     + ChatColor.WHITE + translateMode(stick.getMode())));

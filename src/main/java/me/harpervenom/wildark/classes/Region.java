@@ -168,7 +168,7 @@ public class Region {
     }
 
     public boolean selectCorner(int x, int z) {
-        if ((x != x1 && z != z1) && (x != x2 && z != z2) && (x != x3 && z != z3) && (x != x4 && z != z4)) return false;
+        if (!((x == x1 && z == z1) || (x == x2 && z == z2) || (x == x3 && z == z3) || (x == x4 && z == z4))) return false;
         selectedX = x;
         selectedZ = z;
         showHolo();

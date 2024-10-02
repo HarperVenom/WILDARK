@@ -12,7 +12,7 @@ import java.util.concurrent.CompletableFuture;
 
 public class BlocksManager {
 
-    private Connection connection;
+    private final Connection connection;
 
     public BlocksManager(Connection connection) throws SQLException {
         this.connection = connection;
@@ -51,29 +51,53 @@ public class BlocksManager {
         });
     }
 
-    public CompletableFuture<String> getOwner(Block b) {
+    public CompletableFuture<Boolean> updateBlockLoc(Location oldLocation, Location newLocation) {
         return CompletableFuture.supplyAsync(() -> {
-            int x = b.getX();
-            int y = b.getY();
-            int z = b.getZ();
-            String world = b.getWorld().getName();
-            String sql = "SELECT owner_id FROM blocks WHERE x = ? AND y = ? AND z = ? AND world = ?";
-            try (PreparedStatement ps = connection.prepareStatement(sql)) {
-                ps.setInt(1, x);
-                ps.setInt(2, y);
-                ps.setInt(3, z);
-                ps.setString(4, world);
-                try (ResultSet rs = ps.executeQuery()) {
-                    if (rs.next()) {
-                        return rs.getString("owner_id");
-                    }
-                }
+            String updateQuery = "UPDATE blocks SET x = ?, y = ?, z = ? WHERE x = ? AND y = ? AND z = ?";
+
+            try (PreparedStatement ps = connection.prepareStatement(updateQuery)) {
+                // Set new location
+                ps.setInt(1, newLocation.getBlockX());
+                ps.setInt(2, newLocation.getBlockY());
+                ps.setInt(3, newLocation.getBlockZ());
+
+                // Set old location
+                ps.setInt(4, oldLocation.getBlockX());
+                ps.setInt(5, oldLocation.getBlockY());
+                ps.setInt(6, oldLocation.getBlockZ());
+
+                ps.executeUpdate();
+                return true;
             } catch (SQLException e) {
                 e.printStackTrace();
+                return false;
             }
-            return null;
         });
     }
+
+//    public CompletableFuture<String> getOwner(Block b) {
+//        return CompletableFuture.supplyAsync(() -> {
+//            int x = b.getX();
+//            int y = b.getY();
+//            int z = b.getZ();
+//            String world = b.getWorld().getName();
+//            String sql = "SELECT owner_id FROM blocks WHERE x = ? AND y = ? AND z = ? AND world = ?";
+//            try (PreparedStatement ps = connection.prepareStatement(sql)) {
+//                ps.setInt(1, x);
+//                ps.setInt(2, y);
+//                ps.setInt(3, z);
+//                ps.setString(4, world);
+//                try (ResultSet rs = ps.executeQuery()) {
+//                    if (rs.next()) {
+//                        return rs.getString("owner_id");
+//                    }
+//                }
+//            } catch (SQLException e) {
+//                e.printStackTrace();
+//            }
+//            return null;
+//        });
+//    }
 
     public CompletableFuture<List<WildBlock>> getWildBlocks(int x1, int z1, int x2, int z2, String world) {
         return CompletableFuture.supplyAsync(() -> {

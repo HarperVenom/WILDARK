@@ -18,12 +18,15 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockPistonExtendEvent;
+import org.bukkit.event.block.BlockPistonRetractEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
+import org.bukkit.util.Vector;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -98,19 +101,16 @@ public class BlockListener implements Listener {
 
         Chunk chunk = b.getChunk();
 
-        if (!wildBlocks.containsKey(chunk) || !wildRegions.containsKey(chunk)){
+        if (chunkNotLoaded(p, chunk)){
             e.setCancelled(true);
-            p.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(ChatColor.RED + "Не прогружено"));
-            loadWildChunks(getActiveChunks(chunk));
         } else {
-            Region region = getBlockRegion(b);
             WildBlock wildBlock = getWildBlock(b);
 
             if (wildBlock == null) {
                 return;
             }
-            //only owner cant break his blocks. For testing
-            if (region == null || !region.getOwner().getUniqueId().toString().equals(p.getUniqueId().toString())) {
+
+            if (blockCanBreak(p.getUniqueId().toString(), b) || p.getGameMode() == GameMode.CREATIVE) {
                 wildBlocks.put(chunk, wildBlocks.get(chunk).stream().filter(currentWildBlock -> !currentWildBlock.equals(wildBlock)).toList());
                 db.blocks.deleteBlockRecord(b);
             } else {
@@ -123,6 +123,100 @@ public class BlockListener implements Listener {
                 }
             }
         }
+    }
+
+    @EventHandler
+    public void PistonMoveEvent(BlockPistonExtendEvent e) {
+        boolean shifted = handlePistonMoveEvent(e.getBlock(), e.getBlocks(), e.getDirection().getDirection());
+        if (!shifted) {
+            e.setCancelled(true);
+        }
+    }
+
+    @EventHandler
+    public void onPistonRetract(BlockPistonRetractEvent e) {
+        boolean shifted = handlePistonMoveEvent(e.getBlock(), e.getBlocks(), e.getDirection().getDirection());
+        if (!shifted) {
+            e.setCancelled(true);
+        }
+    }
+
+    public boolean handlePistonMoveEvent(Block b, List<Block> blocks, Vector direction) {
+        Block piston = b;
+
+        if (blocks.isEmpty()) return true;
+
+        boolean canShift = true;
+
+        // First, check if all blocks can be shifted
+        for (Block block : blocks) {
+            if (chunkNotLoaded(null, block.getChunk())) {
+                canShift = false;
+                break;
+            }
+
+            WildBlock wildBlock = getWildBlock(block);
+            if (wildBlock == null) continue;
+
+//            if (!blockCanBreak(getWildBlock(piston).getOwnerId(), block)) {
+//                canShift = false;
+//                break;
+//            }
+        }
+
+        if (canShift) {
+            Map<Block, Location> blockLocations = new HashMap<>();
+
+            for (Block block : blocks) {
+                WildBlock wildBlock = getWildBlock(block);
+                if (wildBlock == null) continue;
+
+                Location oldLocation = block.getLocation();
+                Location newLocation = oldLocation.clone().add(direction);
+                blockLocations.put(block, newLocation);
+            }
+
+            blockLocations.forEach(this::updateBlockLoc);
+
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    public void updateBlockLoc(Block b, Location newLoc) {
+        Chunk oldChunk = b.getChunk();
+        Chunk newChunk = newLoc.getChunk();
+        WildBlock wildBlock = getWildBlock(b);
+        if (wildBlock == null) return;
+        wildBlocks.put(oldChunk, wildBlocks.get(oldChunk).stream().filter(currentWildBlock -> !currentWildBlock.equals(wildBlock)).toList());
+
+        wildBlock.setLoc(newLoc);
+
+        System.out.println(newLoc);
+
+        List<WildBlock> wildBlockList = new ArrayList<>(wildBlocks.get(newChunk));
+        wildBlockList.add(wildBlock);
+        wildBlocks.put(newChunk, wildBlockList);
+
+        db.blocks.updateBlockLoc(b.getLocation(), newLoc);
+    }
+
+    public boolean chunkNotLoaded(Player p, Chunk chunk) {
+        if (!(wildBlocks.containsKey(chunk) && wildRegions.containsKey(chunk))) {
+            if (p != null) {
+                p.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(ChatColor.RED + "Не прогружено"));
+            }
+            loadWildChunks(getActiveChunks(chunk));
+            return true;
+        }
+        return false;
+    }
+
+    public boolean blockCanBreak(String playerId, Block b) {
+        Region region = getBlockRegion(b);
+        //owner cant break his blocks. For testing
+        return region == null || !region.getOwner().getUniqueId().toString().equals(playerId);
     }
 
     public static WildBlock getWildBlock(Block b) {
@@ -146,7 +240,7 @@ public class BlockListener implements Listener {
     }
 
     public static HashMap<Block, Integer> damagedBlocks = new HashMap<>();
-    private HashMap<Block, BukkitTask> restoreHealthTasks = new HashMap<>();
+    private final HashMap<Block, BukkitTask> restoreHealthTasks = new HashMap<>();
 
     public boolean hitBlock(Player p, Block b) {
         boolean hasProperTool = false;
