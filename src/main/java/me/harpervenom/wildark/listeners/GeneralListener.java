@@ -1,7 +1,6 @@
 package me.harpervenom.wildark.listeners;
 
 import me.harpervenom.wildark.classes.RegionStick;
-import me.harpervenom.wildark.classes.WildPlayer;
 import me.harpervenom.wildark.database.Database;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
@@ -18,8 +17,7 @@ import org.bukkit.inventory.ItemStack;
 import java.util.HashMap;
 import java.util.UUID;
 
-import static me.harpervenom.wildark.listeners.StickRegionListener.regionMap;
-import static me.harpervenom.wildark.listeners.StickRegionListener.selectedRegionMap;
+import static me.harpervenom.wildark.listeners.StickRegionListener.*;
 
 public class GeneralListener implements Listener {
 
@@ -48,26 +46,24 @@ public class GeneralListener implements Listener {
             RegionStick stick = regionStickMap.get(p.getUniqueId());
             stick.switchMode();
             if (regionMap.containsKey(p.getUniqueId())) {
-                regionMap.get(p.getUniqueId()).removeHolo();
-                regionMap.get(p.getUniqueId()).removeSelectedCorner();
-                regionMap.remove(p.getUniqueId());
+                clearRegionMap(p);
             }
             if (selectedRegionMap.containsKey(p.getUniqueId())) {
-                selectedRegionMap.get(p.getUniqueId()).removeHolo();
-                selectedRegionMap.get(p.getUniqueId()).removeSelectedCorner();
-                selectedRegionMap.remove(p.getUniqueId());
+                clearSelectedRegionMap(p);
             }
             p.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacy(ChatColor.GRAY + "Режим: "
                     + ChatColor.WHITE + translateMode(stick.getMode())));
         }
+
+        e.setCancelled(true);
     }
 
     public String translateMode(String mode) {
-        switch (mode) {
-            case "Block" : return "Блок";
-            case "Area" : return "Территория";
-            case "Region" : return "Участок";
-        }
-        return "";
+        return switch (mode) {
+            case "Block" -> "Блок";
+            case "Area" -> "Территория";
+            case "Region" -> "Участок";
+            default -> "";
+        };
     }
 }

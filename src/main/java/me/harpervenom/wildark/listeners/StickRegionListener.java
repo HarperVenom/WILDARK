@@ -290,7 +290,7 @@ public class StickRegionListener implements Listener {
                             + ChatColor.WHITE + (price) + ChatColor.GRAY + ".");
                 }
 
-                clearExistingRegionMap(p);
+                clearSelectedRegionMap(p);
                 clearRegionMap(p);
             }}));
         }));
@@ -358,28 +358,30 @@ public class StickRegionListener implements Listener {
     @EventHandler
     public void PortalEnter(PlayerChangedWorldEvent e){
         Player p = e.getPlayer();
-        clearExistingRegionMap(p);
+        clearSelectedRegionMap(p);
         clearRegionMap(p);
     }
 
     @EventHandler
     public void PlayerLeave(PlayerQuitEvent e){
         Player p = e.getPlayer();
-        clearExistingRegionMap(p);
+        clearSelectedRegionMap(p);
         clearRegionMap(p);
     }
 
-    public void clearRegionMap(Player p){
-        if (StickRegionListener.regionMap.containsKey(p.getUniqueId())) {
-            StickRegionListener.regionMap.get(p.getUniqueId()).removeHolo();
-            StickRegionListener.regionMap.remove(p.getUniqueId());
+    public static void clearRegionMap(Player p){
+        if (regionMap.containsKey(p.getUniqueId())) {
+            regionMap.get(p.getUniqueId()).removeHolo();
+            regionMap.get(p.getUniqueId()).removeSelectedCorner();
+            regionMap.remove(p.getUniqueId());
         }
     }
 
-    public void clearExistingRegionMap(Player p){
-        if (StickRegionListener.selectedRegionMap.containsKey(p.getUniqueId())) {
-            StickRegionListener.selectedRegionMap.get(p.getUniqueId()).removeHolo();
-            StickRegionListener.selectedRegionMap.remove(p.getUniqueId());
+    public static void clearSelectedRegionMap(Player p){
+        if (selectedRegionMap.containsKey(p.getUniqueId())) {
+            selectedRegionMap.get(p.getUniqueId()).removeHolo();
+            selectedRegionMap.get(p.getUniqueId()).removeSelectedCorner();
+            selectedRegionMap.remove(p.getUniqueId());
         }
     }
 }

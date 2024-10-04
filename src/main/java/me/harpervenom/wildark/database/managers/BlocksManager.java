@@ -32,7 +32,7 @@ public class BlocksManager {
 
     }
 
-    public CompletableFuture<Boolean> logBlock(String playerUUID, int x, int y, int z, String world) {
+    public CompletableFuture<Integer> logBlock(String playerUUID, int x, int y, int z, String world) {
         return CompletableFuture.supplyAsync(() -> {
             String sql = "INSERT INTO blocks (owner_id, x, y, z, world) VALUES " +
                     "(?, ?, ?, ?, ?)";
@@ -42,11 +42,21 @@ public class BlocksManager {
                 ps.setInt(3,y);
                 ps.setInt(4,z);
                 ps.setString(5, world);
-                ps.executeUpdate();
-                return true;
+
+                int affectedRows = ps.executeUpdate();
+
+                if (affectedRows > 0) {
+                    try (ResultSet rs = ps.getGeneratedKeys()) {
+                        if (rs.next()) {
+                            return rs.getInt(1);
+                        }
+                    }
+                }
+
+                return null;
             }catch (SQLException e) {
                 e.printStackTrace();
-                return false;
+                return null;
             }
         });
     }
@@ -75,30 +85,6 @@ public class BlocksManager {
         });
     }
 
-//    public CompletableFuture<String> getOwner(Block b) {
-//        return CompletableFuture.supplyAsync(() -> {
-//            int x = b.getX();
-//            int y = b.getY();
-//            int z = b.getZ();
-//            String world = b.getWorld().getName();
-//            String sql = "SELECT owner_id FROM blocks WHERE x = ? AND y = ? AND z = ? AND world = ?";
-//            try (PreparedStatement ps = connection.prepareStatement(sql)) {
-//                ps.setInt(1, x);
-//                ps.setInt(2, y);
-//                ps.setInt(3, z);
-//                ps.setString(4, world);
-//                try (ResultSet rs = ps.executeQuery()) {
-//                    if (rs.next()) {
-//                        return rs.getString("owner_id");
-//                    }
-//                }
-//            } catch (SQLException e) {
-//                e.printStackTrace();
-//            }
-//            return null;
-//        });
-//    }
-
     public CompletableFuture<List<WildBlock>> getWildBlocks(int x1, int z1, int x2, int z2, String world) {
         return CompletableFuture.supplyAsync(() -> {
             String sql = "SELECT * FROM blocks WHERE x BETWEEN ? AND ? AND z BETWEEN ? AND ? AND world = ?";
@@ -113,7 +99,7 @@ public class BlocksManager {
 
                 try (ResultSet rs = ps.executeQuery()) {
                     while (rs.next()) {
-                        WildBlock block = new WildBlock(new Location(Bukkit.getWorld(rs.getString("world")), rs.getInt("x"),
+                        WildBlock block = new WildBlock(rs.getInt("id"), new Location(Bukkit.getWorld(rs.getString("world")), rs.getInt("x"),
                                 rs.getInt("y"),
                                 rs.getInt("z")), rs.getString("owner_id"));
 
@@ -127,20 +113,17 @@ public class BlocksManager {
         });
     }
 
-    public void deleteBlockRecord(Block b) {
-        int x = b.getX();
-        int y = b.getY();
-        int z = b.getZ();
-        String world = b.getWorld().getName();
-        String sql = "DELETE FROM blocks WHERE x = ? AND y = ? AND z = ? AND world = ?";
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
-            ps.setInt(1, x);
-            ps.setInt(2, y);
-            ps.setInt(3, z);
-            ps.setString(4, world);
-            ps.executeUpdate();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+    public CompletableFuture<Boolean> deleteBlockRecord(int id) {
+        return CompletableFuture.supplyAsync(() -> {
+            String sql = "DELETE FROM blocks WHERE id = ?";
+            try (PreparedStatement ps = connection.prepareStatement(sql)) {
+                ps.setInt(1, id);
+                ps.executeUpdate();
+                return true;
+            } catch (SQLException e) {
+                e.printStackTrace();
+                return false;
+            }
+        });
     }
 }

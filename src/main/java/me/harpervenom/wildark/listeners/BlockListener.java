@@ -29,6 +29,8 @@ import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
 
 
@@ -39,6 +41,11 @@ public class BlockListener implements Listener {
 
     private final Database db;
 
+    private final List<WildBlock> placedBatchBlocks = new ArrayList<>();
+    private final List<Block> destroyedBatchBlocks = new ArrayList<>();
+    private final HashMap<Location, WildBlock> replacedBatchBlocks = new HashMap<>();
+    private final Object lock = new Object();
+
     public BlockListener(Database db) {
         this.db = db;
     }
@@ -47,51 +54,17 @@ public class BlockListener implements Listener {
     public void BlockPlaceEvent(BlockPlaceEvent e) {
         Block b = e.getBlock();
         Player p = e.getPlayer();
-
-        if (!isTrueBlock(p, b)) {
-            return;
-        }
-
-        saveBlock(e, p, b);
-
-        if (b instanceof Bed bed) {
-            BlockFace facing = bed.getFacing();
-            Block bedTop = b.getRelative(facing);
-
-            saveBlock(e, p, bedTop);
-        }
-
-    }
-
-    private void saveBlock(BlockPlaceEvent e, Player p, Block b) {
         Chunk chunk = b.getChunk();
 
-        String playerUIID = p.getUniqueId().toString();
-        int x = b.getX();
-        int y = b.getY();
-        int z = b.getZ();
-        String world = b.getWorld().getName();
-
-        if (wildBlocks.containsKey(chunk)) {
-            List<WildBlock> wildBlockList = new ArrayList<>(wildBlocks.get(chunk));
-            wildBlockList.add(new WildBlock(b.getLocation(), p.getUniqueId().toString()));
-            wildBlocks.put(chunk, wildBlockList);
-        } else {
+        if (chunkNotLoaded(p, chunk)){
             e.setCancelled(true);
-            p.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(ChatColor.RED + "Не прогружено."));
             return;
         }
 
-        db.blocks.logBlock(playerUIID,x,y,z,world).thenAccept(result -> {
-            //In case of error
-            if (!result) {
-                p.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(ChatColor.RED + "Ошибка! Блок не сохранен!"));
+        if (!isTrueBlock(p, b)) return;
 
-                //Remove block from the map
-                List<WildBlock> wildBlockList = new ArrayList<>(wildBlocks.get(chunk));
-                wildBlocks.put(chunk, wildBlockList.stream().filter(wildBlock -> wildBlock.getLoc().equals(b.getLocation())).collect(Collectors.toList()));
-            }
-        });
+        WildBlock wildBlock = new WildBlock(b.getLocation(), p.getUniqueId().toString());
+        wildBlock.save();
     }
 
     @EventHandler
@@ -103,30 +76,30 @@ public class BlockListener implements Listener {
 
         if (chunkNotLoaded(p, chunk)){
             e.setCancelled(true);
+            return;
+        }
+
+        WildBlock wildBlock = getWildBlock(b);
+
+        if (wildBlock == null) {
+            return;
+        }
+
+        if (blockCanBreak(p.getUniqueId().toString(), b) || p.getGameMode() == GameMode.CREATIVE) {
+            wildBlock.remove();
         } else {
-            WildBlock wildBlock = getWildBlock(b);
-
-            if (wildBlock == null) {
-                return;
-            }
-
-            if (blockCanBreak(p.getUniqueId().toString(), b) || p.getGameMode() == GameMode.CREATIVE) {
-                wildBlocks.put(chunk, wildBlocks.get(chunk).stream().filter(currentWildBlock -> !currentWildBlock.equals(wildBlock)).toList());
-                db.blocks.deleteBlockRecord(b);
+            boolean destroyed = hitBlock(p, b);
+            if (!destroyed) {
+                e.setCancelled(true);
             } else {
-                boolean destroyed = hitBlock(p, b);
-                if (!destroyed) {
-                    e.setCancelled(true);
-                } else {
-                    wildBlocks.put(chunk, wildBlocks.get(chunk).stream().filter(currentWildBlock -> !currentWildBlock.equals(wildBlock)).toList());
-                    db.blocks.deleteBlockRecord(b);
-                }
+                removeWildBlock(wildBlock);
+                wildBlock.remove();
             }
         }
     }
 
     @EventHandler
-    public void PistonMoveEvent(BlockPistonExtendEvent e) {
+    public void onPistonExtend(BlockPistonExtendEvent e) {
         boolean shifted = handlePistonMoveEvent(e.getBlock(), e.getBlocks(), e.getDirection().getDirection());
         if (!shifted) {
             e.setCancelled(true);
@@ -141,8 +114,7 @@ public class BlockListener implements Listener {
         }
     }
 
-    public boolean handlePistonMoveEvent(Block b, List<Block> blocks, Vector direction) {
-        Block piston = b;
+    public boolean handlePistonMoveEvent(Block piston, List<Block> blocks, Vector direction) {
 
         if (blocks.isEmpty()) return true;
 
@@ -158,10 +130,10 @@ public class BlockListener implements Listener {
             WildBlock wildBlock = getWildBlock(block);
             if (wildBlock == null) continue;
 
-//            if (!blockCanBreak(getWildBlock(piston).getOwnerId(), block)) {
-//                canShift = false;
-//                break;
-//            }
+            if (!blockCanBreak(getWildBlock(piston).getOwnerId(), block)) {
+                canShift = false;
+                break;
+            }
         }
 
         if (canShift) {
@@ -185,19 +157,14 @@ public class BlockListener implements Listener {
     }
 
     public void updateBlockLoc(Block b, Location newLoc) {
-        Chunk oldChunk = b.getChunk();
-        Chunk newChunk = newLoc.getChunk();
         WildBlock wildBlock = getWildBlock(b);
         if (wildBlock == null) return;
-        wildBlocks.put(oldChunk, wildBlocks.get(oldChunk).stream().filter(currentWildBlock -> !currentWildBlock.equals(wildBlock)).toList());
+
+        removeWildBlock(wildBlock);
 
         wildBlock.setLoc(newLoc);
 
-        System.out.println(newLoc);
-
-        List<WildBlock> wildBlockList = new ArrayList<>(wildBlocks.get(newChunk));
-        wildBlockList.add(wildBlock);
-        wildBlocks.put(newChunk, wildBlockList);
+        saveWildBlock(wildBlock);
 
         db.blocks.updateBlockLoc(b.getLocation(), newLoc);
     }
@@ -341,5 +308,17 @@ public class BlockListener implements Listener {
         }
 
         return b;
+    }
+
+    public void saveWildBlock(WildBlock wildBlock) {
+        Chunk chunk = wildBlock.getLoc().getChunk();
+        List<WildBlock> wildBlockList = new ArrayList<>(wildBlocks.get(chunk));
+        wildBlockList.add(wildBlock);
+        wildBlocks.put(chunk, wildBlockList);
+    }
+
+    public void removeWildBlock(WildBlock wildBlock){
+        Chunk chunk = wildBlock.getLoc().getChunk();
+        wildBlocks.put(chunk, wildBlocks.get(chunk).stream().filter(currentWildBlock -> !currentWildBlock.equals(wildBlock)).toList());
     }
 }

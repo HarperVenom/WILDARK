@@ -66,6 +66,8 @@ public class StickBlockListener implements Listener {
                 p.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(ChatColor.GRAY + "Не защищено"));
                 return;
             }
+            p.sendMessage(ChatColor.YELLOW + "id: " + wildBlock.getId());
+
             if (region == null){
                 p.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(ChatColor.GRAY + "Не защищено"));
                 return;

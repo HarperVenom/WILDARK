@@ -1,5 +1,6 @@
 package me.harpervenom.wildark;
 
+import me.harpervenom.wildark.classes.WildBlock;
 import me.harpervenom.wildark.commands.Menu;
 import me.harpervenom.wildark.database.Database;
 import me.harpervenom.wildark.listeners.*;
@@ -25,6 +26,8 @@ public final class WILDARK extends JavaPlugin {
 
         db = new Database();
         db.init();
+
+        WildBlock.db = db;
 
         getServer().getPluginManager().registerEvents(new GeneralListener(db), this);
 

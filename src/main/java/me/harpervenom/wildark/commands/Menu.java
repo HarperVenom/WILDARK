@@ -81,7 +81,6 @@ public class Menu implements CommandExecutor, Listener {
                 }
 
                 menu.setItem(15, regionsItem);
-                p.sendMessage("here");
                 Bukkit.getScheduler().runTask(WILDARK.getPlugin(), () -> p.openInventory(menu));
             });
             return true;
