@@ -21,7 +21,7 @@ public class WildBlock {
 
     private final static List<WildBlock> placedBatch = new ArrayList<>();
     private final static List<WildBlock> destroyedBatch = new ArrayList<>();
-    private final static HashMap<Location, WildBlock> replacedBatchBlocks = new HashMap<>();
+    private final static List<WildBlock> movedBatch = new ArrayList<>();
 
     private int id;
     private Location loc;
@@ -83,6 +83,12 @@ public class WildBlock {
         queueForDestroyedBatch(this);
     }
 
+    public void move(Location newLocation) {
+        loc = newLocation;
+
+        queueForMovedBatch();
+    }
+
     private void queueForPlacedBatch() {
         placedBatch.add(this);
 
@@ -101,6 +107,15 @@ public class WildBlock {
         int BATCH_SIZE = 50;
         if (destroyedBatch.size() >= BATCH_SIZE) {
             flushDestroyedBatch();
+        }
+    }
+
+    private void queueForMovedBatch() {
+        movedBatch.add(this);
+
+        int BATCH_SIZE = 50;
+        if (movedBatch.size() >= BATCH_SIZE) {
+            flushMovedBatch();
         }
     }
 
@@ -156,11 +171,28 @@ public class WildBlock {
         });
     }
 
+    private static void flushMovedBatch() {
+        List<WildBlock> blocksToRemove;
+        blocksToRemove = new ArrayList<>(movedBatch);
+        movedBatch.clear();
+
+        List<CompletableFuture<Boolean>> futures = new ArrayList<>();
+        for (WildBlock block : blocksToRemove) {
+            CompletableFuture<Boolean> future = db.blocks.updateBlockLoc(block.getId(), block.getLoc());
+            futures.add(future);
+        }
+
+        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).thenAccept(v -> {
+            Bukkit.broadcastMessage("moved blocks: " + futures.size());
+        });
+    }
+
     private static void startBatchProcessing() {
         Bukkit.getScheduler().runTaskTimerAsynchronously(WILDARK.getPlugin(),
                 () -> {
                     flushPlacedBatch();
                     flushDestroyedBatch();
+                    flushMovedBatch();
                 }
                 , 20L * 10, 20L * 10);
     }

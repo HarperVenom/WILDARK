@@ -130,14 +130,15 @@ public class BlockListener implements Listener {
             WildBlock wildBlock = getWildBlock(block);
             if (wildBlock == null) continue;
 
-            if (!blockCanBreak(getWildBlock(piston).getOwnerId(), block)) {
-                canShift = false;
-                break;
-            }
+            //Temporary
+//            if (!blockCanBreak(getWildBlock(piston).getOwnerId(), block)) {
+//                canShift = false;
+//                break;
+//            }
         }
 
         if (canShift) {
-            Map<Block, Location> blockLocations = new HashMap<>();
+            Map<WildBlock, Location> blockLocations = new HashMap<>();
 
             for (Block block : blocks) {
                 WildBlock wildBlock = getWildBlock(block);
@@ -145,28 +146,15 @@ public class BlockListener implements Listener {
 
                 Location oldLocation = block.getLocation();
                 Location newLocation = oldLocation.clone().add(direction);
-                blockLocations.put(block, newLocation);
+                blockLocations.put(wildBlock, newLocation);
             }
 
-            blockLocations.forEach(this::updateBlockLoc);
+            blockLocations.forEach(WildBlock::move);
 
             return true;
         } else {
             return false;
         }
-    }
-
-    public void updateBlockLoc(Block b, Location newLoc) {
-        WildBlock wildBlock = getWildBlock(b);
-        if (wildBlock == null) return;
-
-        removeWildBlock(wildBlock);
-
-        wildBlock.setLoc(newLoc);
-
-        saveWildBlock(wildBlock);
-
-        db.blocks.updateBlockLoc(b.getLocation(), newLoc);
     }
 
     public boolean chunkNotLoaded(Player p, Chunk chunk) {

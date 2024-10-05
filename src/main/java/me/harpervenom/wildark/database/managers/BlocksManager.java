@@ -61,9 +61,9 @@ public class BlocksManager {
         });
     }
 
-    public CompletableFuture<Boolean> updateBlockLoc(Location oldLocation, Location newLocation) {
+    public CompletableFuture<Boolean> updateBlockLoc(int id, Location newLocation) {
         return CompletableFuture.supplyAsync(() -> {
-            String updateQuery = "UPDATE blocks SET x = ?, y = ?, z = ? WHERE x = ? AND y = ? AND z = ?";
+            String updateQuery = "UPDATE blocks SET x = ?, y = ?, z = ? WHERE id = ?";
 
             try (PreparedStatement ps = connection.prepareStatement(updateQuery)) {
                 // Set new location
@@ -71,10 +71,8 @@ public class BlocksManager {
                 ps.setInt(2, newLocation.getBlockY());
                 ps.setInt(3, newLocation.getBlockZ());
 
-                // Set old location
-                ps.setInt(4, oldLocation.getBlockX());
-                ps.setInt(5, oldLocation.getBlockY());
-                ps.setInt(6, oldLocation.getBlockZ());
+                // Set id
+                ps.setInt(4, id);
 
                 ps.executeUpdate();
                 return true;
