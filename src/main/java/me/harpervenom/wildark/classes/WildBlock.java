@@ -13,11 +13,10 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 
+import static me.harpervenom.wildark.WILDARK.db;
 import static me.harpervenom.wildark.listeners.WildChunksListener.wildBlocks;
 
 public class WildBlock {
-
-    public static Database db;
 
     private final static List<WildBlock> placedBatch = new ArrayList<>();
     private final static List<WildBlock> destroyedBatch = new ArrayList<>();
@@ -25,7 +24,7 @@ public class WildBlock {
 
     private int id;
     private Location loc;
-    private String ownerId;
+    private final String ownerId;
 
     static {
         startBatchProcessing();
@@ -70,8 +69,6 @@ public class WildBlock {
 
         wildBlockList.add(this);
         wildBlocks.put(chunk, wildBlockList);
-
-        Bukkit.broadcastMessage(wildBlocks.get(chunk).size() + "");
 
         queueForPlacedBatch();
     }
@@ -138,7 +135,7 @@ public class WildBlock {
         }
 
         CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).thenAccept(v -> {
-            Bukkit.broadcastMessage("saved blocks: " + futures.size());
+//            Bukkit.broadcastMessage("saved blocks: " + futures.size());
 
             // Assigns blocks' generated ids
             for (int i = 0; i < futures.size(); i++) {
@@ -166,9 +163,9 @@ public class WildBlock {
             futures.add(future);
         }
 
-        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).thenAccept(v -> {
-            Bukkit.broadcastMessage("removed blocks: " + futures.size());
-        });
+//        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).thenAccept(v -> {
+//            Bukkit.broadcastMessage("removed blocks: " + futures.size());
+//        });
     }
 
     private static void flushMovedBatch() {
@@ -182,9 +179,9 @@ public class WildBlock {
             futures.add(future);
         }
 
-        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).thenAccept(v -> {
-            Bukkit.broadcastMessage("moved blocks: " + futures.size());
-        });
+//        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).thenAccept(v -> {
+//            Bukkit.broadcastMessage("moved blocks: " + futures.size());
+//        });
     }
 
     private static void startBatchProcessing() {

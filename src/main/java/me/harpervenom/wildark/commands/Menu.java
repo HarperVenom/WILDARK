@@ -23,15 +23,10 @@ import org.bukkit.inventory.meta.ItemMeta;
 import java.util.ArrayList;
 import java.util.List;
 
+import static me.harpervenom.wildark.WILDARK.db;
 import static me.harpervenom.wildark.listeners.PlayerListener.getWildPlayer;
 
 public class Menu implements CommandExecutor, Listener {
-
-    private final Database db;
-
-    public Menu(Database db) {
-        this.db = db;
-    }
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {

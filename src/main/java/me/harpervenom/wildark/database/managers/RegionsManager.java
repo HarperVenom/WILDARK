@@ -2,7 +2,6 @@ package me.harpervenom.wildark.database.managers;
 
 import me.harpervenom.wildark.classes.Region;
 import org.bukkit.Bukkit;
-import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 
 import java.sql.*;
@@ -45,7 +44,7 @@ public class RegionsManager {
     }
 
     public CompletableFuture<Region> createRegion(Region region) {
-        Player p = region.getOwner();
+        Player p = Bukkit.getPlayer(region.getOwnerId());
         return getPlayerRegions(p).thenCompose(ownRegions -> CompletableFuture.supplyAsync(() -> {
             String regionName = p.getName() + (!ownRegions.isEmpty() ? "(" + ownRegions.size() + ")" : "");
 
@@ -80,7 +79,7 @@ public class RegionsManager {
                         }
 
                         return new Region(
-                                regionId, p,
+                                regionId, p.getUniqueId(),
                                 regionName,
                                 region.getWorldName(),
                                 region.getX1(),
@@ -145,7 +144,7 @@ public class RegionsManager {
                             try (ResultSet regionsRs = regionsPs.executeQuery()) {
                                 Region region = new Region(
                                         regionsRs.getInt("id"),
-                                        Bukkit.getPlayer(UUID.fromString(playerId)),
+                                        UUID.fromString(playerId),
                                         regionsRs.getString("name"),
                                         regionsRs.getString("world"),
                                         regionsRs.getInt("x1"),
@@ -186,38 +185,6 @@ public class RegionsManager {
             return null;
         }
     }
-
-//    public Region getBlockRegion(Block b) {
-//        String query = "SELECT * FROM regions WHERE world = ? AND x1 <= ? AND x2 >= ? AND z1 <= ? AND z2 >= ?";
-//        try (PreparedStatement ps = connection.prepareStatement(query)){
-//            ps.setString(1, b.getWorld().getName());
-//            ps.setInt(2, b.getX());
-//            ps.setInt(3, b.getX());
-//            ps.setInt(4, b.getZ());
-//            ps.setInt(5, b.getZ());
-//
-//            try (ResultSet rs = ps.executeQuery()) {
-//                if (rs.next()){
-//                    return new Region(
-//                            rs.getInt("id"),
-//                            getRegionOwner(rs.getInt("id")),
-//                            rs.getString("name"),
-//                            rs.getString("world"),
-//                            rs.getInt("x1"),
-//                            rs.getInt("z1"),
-//                            rs.getInt("x2"),
-//                            rs.getInt("z2"),
-//                            "blue");
-//                }
-//                return null;
-//            }
-//
-//        } catch (SQLException e){
-//            e.printStackTrace();
-//            return null;
-//        }
-//
-//    }
 
     public CompletableFuture<String> regionStatus(Region region) {
         return scanArea(region.getWorldName(), region.getX1(), region.getZ1(), region.getX2(), region.getZ2(), 10).thenApply(regions -> {
@@ -285,9 +252,10 @@ public class RegionsManager {
                         }
 
                         if (playerId != null) {
+//                            System.out.println(Bukkit.getPlayer(UUID.fromString(playerId)));
                             Region region = new Region(
                                     rs.getInt("id"),
-                                    Bukkit.getPlayer(UUID.fromString(playerId)),
+                                    UUID.fromString(playerId),
                                     rs.getString("name"),
                                     rs.getString("world"),
                                     rs.getInt("x1"),
@@ -306,6 +274,52 @@ public class RegionsManager {
             }
         });
 
+    }
+
+    public CompletableFuture<List<Region>> loadAllRegions() {
+        return CompletableFuture.supplyAsync(() -> {
+            String query = "SELECT * FROM regions";
+            String playerQuery = "SELECT player_id FROM players_regions WHERE region_id = ?";
+
+            try (PreparedStatement ps = connection.prepareStatement(query)) {
+
+                try (ResultSet rs = ps.executeQuery()) {
+                    List<Region> regions = new ArrayList<>();
+
+                    while (rs.next()) {
+                        int regionId = rs.getInt("id");
+                        String playerId = null;
+
+                        try (PreparedStatement playerPs = connection.prepareStatement(playerQuery)) {
+                            playerPs.setInt(1, regionId);
+                            try (ResultSet playerRs = playerPs.executeQuery()) {
+                                if (playerRs.next()) {
+                                    playerId = playerRs.getString("player_id");
+                                }
+                            }
+                        }
+
+                        if (playerId != null) {
+                            Region region = new Region(
+                                    rs.getInt("id"),
+                                    UUID.fromString(playerId),
+                                    rs.getString("name"),
+                                    rs.getString("world"),
+                                    rs.getInt("x1"),
+                                    rs.getInt("z1"),
+                                    rs.getInt("x2"),
+                                    rs.getInt("z2")
+                            );
+                            regions.add(region);
+                        }
+                    }
+                    return regions;
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+                return Collections.emptyList();
+            }
+        });
     }
 
 

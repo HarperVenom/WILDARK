@@ -1,4 +1,4 @@
-package me.harpervenom.wildark.listeners;
+package me.harpervenom.wildark.listeners.stick;
 
 import me.harpervenom.wildark.classes.Region;
 import me.harpervenom.wildark.classes.RegionStick;
@@ -13,15 +13,9 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 
-import java.util.List;
+import static me.harpervenom.wildark.WILDARK.db;
 
 public class StickAreaListener implements Listener {
-
-    private final Database db;
-
-    public StickAreaListener(Database db) {
-        this.db = db;
-    }
 
     @EventHandler
     public void checkArea(PlayerInteractEvent e) {
@@ -32,8 +26,8 @@ public class StickAreaListener implements Listener {
         ItemStack tool = e.getItem();
         if (tool == null || tool.getType() != Material.STICK) return;
 
-        if (!GeneralListener.regionStickMap.containsKey(p.getUniqueId())) return;
-        RegionStick stick = GeneralListener.regionStickMap.get(p.getUniqueId());
+        if (!StickModeSwitch.regionStickMap.containsKey(p.getUniqueId())) return;
+        RegionStick stick = StickModeSwitch.regionStickMap.get(p.getUniqueId());
         if (!stick.getMode().equals("Area")) return;
 
         Block b = e.getClickedBlock();
@@ -56,7 +50,7 @@ public class StickAreaListener implements Listener {
 
                     for (Region region : regions) {
                         if (region.contains(i,j)) {
-                            if (region.getOwner().equals(p)) color = Color.LIME;
+                            if (region.getOwnerId().equals(p.getUniqueId())) color = Color.LIME;
                             else color = Color.RED;
                         }
                     }

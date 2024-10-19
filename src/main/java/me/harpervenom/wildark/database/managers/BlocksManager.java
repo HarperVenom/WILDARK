@@ -111,6 +111,32 @@ public class BlocksManager {
         });
     }
 
+    public List<WildBlock> getWildBlocksSync(int x1, int z1, int x2, int z2, String world) {
+            String sql = "SELECT * FROM blocks WHERE x BETWEEN ? AND ? AND z BETWEEN ? AND ? AND world = ?";
+            List<WildBlock> blocks = new ArrayList<>();
+
+            try (PreparedStatement ps = connection.prepareStatement(sql)) {
+                ps.setInt(1, Math.min(x1, x2));
+                ps.setInt(2, Math.max(x1, x2));
+                ps.setInt(3, Math.min(z1, z2));
+                ps.setInt(4, Math.max(z1, z2));
+                ps.setString(5, world);
+
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        WildBlock block = new WildBlock(rs.getInt("id"), new Location(Bukkit.getWorld(rs.getString("world")), rs.getInt("x"),
+                                rs.getInt("y"),
+                                rs.getInt("z")), rs.getString("owner_id"));
+
+                        blocks.add(block);
+                    }
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+            return blocks;
+    }
+
     public CompletableFuture<Boolean> deleteBlockRecord(int id) {
         return CompletableFuture.supplyAsync(() -> {
             String sql = "DELETE FROM blocks WHERE id = ?";

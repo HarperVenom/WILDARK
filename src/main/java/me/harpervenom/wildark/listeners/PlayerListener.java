@@ -7,17 +7,12 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
+import static me.harpervenom.wildark.WILDARK.db;
 
 import java.util.HashMap;
 import java.util.UUID;
 
 public class PlayerListener implements Listener {
-
-    private Database db;
-
-    public PlayerListener(Database db) {
-        this.db = db;
-    }
 
     public static HashMap<UUID, WildPlayer> wildPlayers = new HashMap<>();
 

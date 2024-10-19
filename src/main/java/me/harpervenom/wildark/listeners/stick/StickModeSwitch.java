@@ -1,4 +1,4 @@
-package me.harpervenom.wildark.listeners;
+package me.harpervenom.wildark.listeners.stick;
 
 import me.harpervenom.wildark.classes.RegionStick;
 import me.harpervenom.wildark.database.Database;
@@ -17,15 +17,9 @@ import org.bukkit.inventory.ItemStack;
 import java.util.HashMap;
 import java.util.UUID;
 
-import static me.harpervenom.wildark.listeners.StickRegionListener.*;
+import static me.harpervenom.wildark.listeners.stick.StickRegionListener.*;
 
-public class GeneralListener implements Listener {
-
-    private final Database db;
-
-    public GeneralListener(Database db) {
-        this.db = db;
-    }
+public class StickModeSwitch implements Listener {
 
     public static HashMap<UUID, RegionStick> regionStickMap = new HashMap<>();
 
@@ -45,11 +39,8 @@ public class GeneralListener implements Listener {
         } else {
             RegionStick stick = regionStickMap.get(p.getUniqueId());
             stick.switchMode();
-            if (regionMap.containsKey(p.getUniqueId())) {
-                clearRegionMap(p);
-            }
-            if (selectedRegionMap.containsKey(p.getUniqueId())) {
-                clearSelectedRegionMap(p);
+            if (activeRegionMap.containsKey(p.getUniqueId())) {
+                resetSelection(p);
             }
             p.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacy(ChatColor.GRAY + "Режим: "
                     + ChatColor.WHITE + translateMode(stick.getMode())));

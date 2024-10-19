@@ -1,19 +1,15 @@
 package me.harpervenom.wildark.classes;
 
 import me.harpervenom.wildark.WILDARK;
-import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Particle;
-import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
-import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.util.Vector;
 
 public class HoloBlock {
 
-    private Player p;
-    private Location loc;
+    private final Player p;
+    private final Location loc;
     private BukkitRunnable particleTask;
 
     public HoloBlock(Player p, Location loc, String color) {
@@ -23,12 +19,11 @@ public class HoloBlock {
     }
 
     private void createHologram(String color) {
-        Particle particle;
-        switch (color){
-            case "blue": particle = Particle.SCRAPE; break;
-            case "yellow": particle = Particle.WAX_ON; break;
-            default : particle = Particle.WAX_OFF; break;
-        }
+        Particle particle = switch (color) {
+            case "blue" -> Particle.SCRAPE;
+            case "yellow" -> Particle.WAX_ON;
+            default -> Particle.WAX_OFF;
+        };
         int count = color.equals("yellow") ? 30 : 20;
         int offsetY = 2;
         particleTask = new BukkitRunnable() {
@@ -44,14 +39,8 @@ public class HoloBlock {
     }
 
     public void delete() {
-        // Cancel the particle task to stop the particles
         if (particleTask != null && !particleTask.isCancelled()) {
             particleTask.cancel();
         }
-
-        // Optionally, nullify references to allow garbage collection
-        this.p = null;
-        this.loc = null;
-        this.particleTask = null;
     }
 }

@@ -14,6 +14,8 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.type.Bed;
 import org.bukkit.block.data.type.Door;
 import org.bukkit.block.data.type.PistonHead;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.FallingBlock;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -21,6 +23,7 @@ import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPistonExtendEvent;
 import org.bukkit.event.block.BlockPistonRetractEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.entity.EntityChangeBlockEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -29,26 +32,12 @@ import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
 
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
-import java.util.stream.Collectors;
 
 
 import static me.harpervenom.wildark.Materials.*;
 import static me.harpervenom.wildark.listeners.WildChunksListener.*;
 
 public class BlockListener implements Listener {
-
-    private final Database db;
-
-    private final List<WildBlock> placedBatchBlocks = new ArrayList<>();
-    private final List<Block> destroyedBatchBlocks = new ArrayList<>();
-    private final HashMap<Location, WildBlock> replacedBatchBlocks = new HashMap<>();
-    private final Object lock = new Object();
-
-    public BlockListener(Database db) {
-        this.db = db;
-    }
 
     @EventHandler
     public void BlockPlaceEvent(BlockPlaceEvent e) {
@@ -92,7 +81,6 @@ public class BlockListener implements Listener {
             if (!destroyed) {
                 e.setCancelled(true);
             } else {
-                removeWildBlock(wildBlock);
                 wildBlock.remove();
             }
         }
@@ -130,11 +118,13 @@ public class BlockListener implements Listener {
             WildBlock wildBlock = getWildBlock(block);
             if (wildBlock == null) continue;
 
-            //Temporary
-//            if (!blockCanBreak(getWildBlock(piston).getOwnerId(), block)) {
-//                canShift = false;
-//                break;
-//            }
+            WildBlock wildPiston = getWildBlock(piston);
+            if (wildPiston == null) return true;
+
+            if (!blockCanBreak(wildPiston.getOwnerId(), block)) {
+                canShift = false;
+                break;
+            }
         }
 
         if (canShift) {
@@ -157,21 +147,39 @@ public class BlockListener implements Listener {
         }
     }
 
-    public boolean chunkNotLoaded(Player p, Chunk chunk) {
-        if (!(wildBlocks.containsKey(chunk) && wildRegions.containsKey(chunk))) {
-            if (p != null) {
-                p.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(ChatColor.RED + "Не прогружено"));
-            }
-            loadWildChunks(getActiveChunks(chunk));
-            return true;
+    public static HashMap<FallingBlock, WildBlock> fallingBlocks = new HashMap<>();
+
+    @EventHandler
+    public void onBlockBecomeFalling(EntityChangeBlockEvent e) {
+        if (e.getTo() != Material.AIR) return;
+        Block b = e.getBlock();
+
+        loadChunkSync(b.getChunk());
+
+        WildBlock wildBlock = getWildBlock(b);
+        if (wildBlock == null) return;
+
+        if (e.getEntity() instanceof FallingBlock falling) {
+            fallingBlocks.put(falling, wildBlock);
         }
-        return false;
+    }
+
+    @EventHandler
+    public void onBlockLand(EntityChangeBlockEvent e) {
+        if (e.getTo() == Material.AIR) return;
+        if (e.getEntity() instanceof FallingBlock falling) {
+            Location newLocation = e.getBlock().getLocation();
+
+            if (fallingBlocks.containsKey(falling)) {
+                fallingBlocks.get(falling).move(newLocation);
+            }
+        }
     }
 
     public boolean blockCanBreak(String playerId, Block b) {
         Region region = getBlockRegion(b);
         //owner cant break his blocks. For testing
-        return region == null || !region.getOwner().getUniqueId().toString().equals(playerId);
+        return region == null || !region.getOwnerId().toString().equals(playerId);
     }
 
     public static WildBlock getWildBlock(Block b) {
@@ -185,13 +193,15 @@ public class BlockListener implements Listener {
     }
 
     public static Region getBlockRegion(Block b) {
-        Chunk chunk = b.getChunk();
+        Region region = null;
 
-        for (Region region : wildRegions.get(chunk)) {
-            if (region.contains(b.getX(), b.getZ())) return region;
+        for (Region currenRegion : wildRegions) {
+            if (currenRegion.contains(b)) {
+                region = currenRegion;
+            }
         }
 
-        return null;
+        return region;
     }
 
     public static HashMap<Block, Integer> damagedBlocks = new HashMap<>();
@@ -273,6 +283,8 @@ public class BlockListener implements Listener {
         restoreHealthTasks.put(b, unloadTask);
     }
 
+
+
     public static Block getMainBlock(Block b) {
         BlockData blockData = b.getBlockData();
         //If Bed
@@ -296,17 +308,5 @@ public class BlockListener implements Listener {
         }
 
         return b;
-    }
-
-    public void saveWildBlock(WildBlock wildBlock) {
-        Chunk chunk = wildBlock.getLoc().getChunk();
-        List<WildBlock> wildBlockList = new ArrayList<>(wildBlocks.get(chunk));
-        wildBlockList.add(wildBlock);
-        wildBlocks.put(chunk, wildBlockList);
-    }
-
-    public void removeWildBlock(WildBlock wildBlock){
-        Chunk chunk = wildBlock.getLoc().getChunk();
-        wildBlocks.put(chunk, wildBlocks.get(chunk).stream().filter(currentWildBlock -> !currentWildBlock.equals(wildBlock)).toList());
     }
 }

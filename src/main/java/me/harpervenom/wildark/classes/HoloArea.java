@@ -7,18 +7,13 @@ import org.bukkit.Particle;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 
+import java.util.Objects;
+
 public class HoloArea {
 
-    private Player p;
-    private Location loc1;
-    private Location loc2;
-
-    private BukkitRunnable particleTask;
+    private final BukkitRunnable particleTask;
 
     public HoloArea(Player p, Location loc1, Location loc2, String color){
-        this.loc1 = loc1;
-        this.loc2 = loc2;
-
         Location xMinLoc = loc1.getX() < loc2.getX() ? loc1 : loc2;
         Location zMinLoc = loc1.getZ() < loc2.getZ() ? loc1 : loc2;
         Location xMaxLoc = loc1.getX() > loc2.getX() ? loc1 : loc2;
@@ -36,7 +31,7 @@ public class HoloArea {
         int xSpace = xDiff / 10;
         int zSpace = zDiff / 10;
 
-        Particle particle = color == "white" ? Particle.WAX_OFF : Particle.SCRAPE;
+        Particle particle = Objects.equals(color, "white") ? Particle.WAX_OFF : Particle.SCRAPE;
 
         int count = 5;
         int offsetY = 2;
@@ -83,16 +78,8 @@ public class HoloArea {
     }
 
     public void delete() {
-        // Cancel the particle task to stop the particles
         if (particleTask != null && !particleTask.isCancelled()) {
             particleTask.cancel();
         }
-
-        // Optionally, nullify references to allow garbage collection
-        this.p = null;
-        this.loc1 = null;
-        this.loc2 = null;
-        this.particleTask = null;
     }
-
 }

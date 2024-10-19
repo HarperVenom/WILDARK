@@ -1,26 +1,33 @@
 package me.harpervenom.wildark.classes;
 
-import org.bukkit.Bukkit;
-import org.bukkit.Chunk;
-import org.bukkit.Location;
-import org.bukkit.World;
+import me.harpervenom.wildark.WILDARK;
+import net.md_5.bungee.api.ChatMessageType;
+import net.md_5.bungee.api.chat.TextComponent;
+import org.bukkit.*;
+import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+import static me.harpervenom.wildark.WILDARK.db;
+import static me.harpervenom.wildark.listeners.PlayerListener.getWildPlayer;
+import static me.harpervenom.wildark.listeners.stick.StickRegionListener.resetSelection;
+import static me.harpervenom.wildark.listeners.WildChunksListener.wildRegions;
 
 public class Region {
 
     private String name;
     private int id;
-//    private Region oldRegion;
+    public Region updatedRegion;
+
     private Integer selectedX;
     private Integer selectedZ;
 
     String color = "white";
 
-    private Player p;
-    private String worldName;
+    private final UUID ownerID;
+    private final String worldName;
 
     private boolean firstCornerSet;
     //Lower values
@@ -46,17 +53,15 @@ public class Region {
     private HoloArea holoArea;
 
     public Region(Player p, String worldName, int x1, int z1) {
-        this.p = p;
+        this.ownerID = p.getUniqueId();
         this.worldName = worldName;
-        this.x1 = x1;
-        this.z1 = z1;
-        firstCornerSet = true;
+        setFirstCorner(x1, z1);
         showHolo();
     }
 
-    public Region(int id, Player p, String name, String worldName, int x1, int z1, int x2, int z2) {
+    public Region(int id, UUID playerID, String name, String worldName, int x1, int z1, int x2, int z2) {
         this.id = id;
-        this.p = p;
+        this.ownerID = playerID;
         this.worldName = worldName;
         this.name = name;
 
@@ -73,12 +78,10 @@ public class Region {
 
         this.x4 = x2;
         this.z4 = z1;
-
-        this.color = color;
     }
 
-    public Player getOwner() {
-        return p;
+    public UUID getOwnerId() {
+        return ownerID;
     }
     public String getName() {
         return name;
@@ -86,6 +89,10 @@ public class Region {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public boolean exists() {
+        return name != null;
     }
 
     public int getId() {
@@ -151,6 +158,10 @@ public class Region {
         this.z4 = z1;
 
         showHolo();
+
+
+        getPlayer().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacy(ChatColor.YELLOW + "Первая точка установлена."));
+        checkRegion();
     }
 
     public void setSecondCorner(int x, int z){
@@ -165,14 +176,36 @@ public class Region {
         this.z4 = z1;
 
         showHolo();
+
+        getPlayer().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacy(ChatColor.YELLOW + "Вторая точка установлена."));
+        checkRegion();
     }
 
-    public boolean selectCorner(int x, int z) {
-        if (!((x == x1 && z == z1) || (x == x2 && z == z2) || (x == x3 && z == z3) || (x == x4 && z == z4))) return false;
+    public void select() {
+        setColor("blue");
+        showHolo();
+        getPlayer().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacy(ChatColor.YELLOW + "Участок выделен."));
+    }
+
+    public void selectCorner(Block b) {
+        int x = b.getX();
+        int z = b.getZ();
+        Player p = getPlayer();
+        if (!((x == x1 && z == z1) || (x == x2 && z == z2) || (x == x3 && z == z3) || (x == x4 && z == z4))) return;
         selectedX = x;
         selectedZ = z;
         showHolo();
-        return true;
+
+        p.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacy(ChatColor.YELLOW + "Угол выбран."));
+
+        if (updatedRegion != null) {
+            int[] opposite = getCornerOppositeToSelected();
+            updatedRegion.x1 = updatedRegion.selectedX;
+            updatedRegion.z1 = updatedRegion.selectedZ;
+            updatedRegion.x2 = opposite[0];
+            updatedRegion.z2 = opposite[1];
+            checkNewRegion();
+        }
     }
 
     public void removeSelectedCorner() {
@@ -192,6 +225,8 @@ public class Region {
     }
 
     public void showHolo() {
+        Player p = getPlayer();
+
         if (firstHoloBlock != null) firstHoloBlock.delete();
         if (secondHoloBlock != null) secondHoloBlock.delete();
         if (thirdHoloBlock != null) thirdHoloBlock.delete();
@@ -230,6 +265,13 @@ public class Region {
         return xDifference * zDifference;
     }
 
+    public boolean contains(Block b){
+        int x = b.getX();
+        int z = b.getZ();
+
+        return contains(x, z);
+    }
+
     public boolean contains(int x, int z){
         int minX = Math.min(x1, x2);
         int maxX = Math.max(x1, x2);
@@ -239,26 +281,6 @@ public class Region {
         return (x >= minX && x <= maxX && z >= minZ && z <= maxZ);
     }
 
-    public List<Chunk> getChunks() {
-        List<Chunk> chunks = new ArrayList<>();
-        World world = Bukkit.getWorld(worldName);
-
-        // Calculate the chunk boundaries based on the region's coordinates
-        int minChunkX = Math.min(x1, x2) / 16;
-        int maxChunkX = Math.max(x1, x2) / 16;
-        int minChunkZ = Math.min(z1, z2) / 16;
-        int maxChunkZ = Math.max(z1, z2) / 16;
-
-        // Iterate over all chunks that the region spans and add them to the list
-        for (int chunkX = minChunkX; chunkX <= maxChunkX; chunkX++) {
-            for (int chunkZ = minChunkZ; chunkZ <= maxChunkZ; chunkZ++) {
-                chunks.add(world.getChunkAt(chunkX, chunkZ));
-            }
-        }
-
-        return chunks;
-    }
-
     public void removeHolo() {
 
         if (firstHoloBlock != null) firstHoloBlock.delete();
@@ -266,5 +288,231 @@ public class Region {
         if (thirdHoloBlock != null) thirdHoloBlock.delete();
         if (fourthHoloBlock != null) fourthHoloBlock.delete();
         if (holoArea != null) holoArea.delete();
+    }
+
+    public static Region getPlayerRegion(Player p, Block b) {
+        return wildRegions.stream().filter(region -> region.contains(b.getX(), b.getZ()) && region.getOwnerId().equals(p.getUniqueId())).findFirst()
+                .orElse(null);
+    }
+
+    public void checkRegion() {
+        Player p = getPlayer();
+
+        WildPlayer wildPlayer = getWildPlayer(p);
+        if (areaSelected()) {
+            ChatColor color = wildPlayer.getAvailableBlocks() >= getArea() ? ChatColor.GREEN : ChatColor.RED;
+            p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.GRAY + "Участок: "
+                    + ChatColor.WHITE + getGrid() + ChatColor.GRAY + ". Необходимо блоков: " + color + getArea());
+
+            if (wildPlayer.getAvailableBlocks() < getArea()) {
+                p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.RED + "У вас недостаточно блоков.");
+            } else {
+                p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.GRAY + "ШИФТ + ПКМ чтобы создать");
+            }
+        }
+    }
+
+    public void create() {
+        Player p = getPlayer();
+
+        WildPlayer wildPlayer = getWildPlayer(p);
+        if (wildPlayer.getAvailableBlocks() < getArea()) {
+            p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.RED + "У вас недостаточно блоков.");
+            return;
+        }
+
+        if (wildPlayer.getAvailableRegions() < 1){
+            p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.RED + "У вас максимальное число участков.");
+            return;
+        }
+
+        db.regions.regionStatus(this).thenAccept(regionStatus -> {
+            if (regionStatus.equals("intersect")){
+                p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.RED + "Участок пересекается с другими.");
+                return;
+            } else if (regionStatus.equals("close")) {
+                p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.RED + "Рядом участок больше вашего.");
+                return;
+            }
+
+            db.regions.createRegion(this).thenAccept((createdRegion) -> {
+
+                wildRegions.add(createdRegion);
+
+                int price = createdRegion.getArea();
+
+                db.players.updateAvailableRegions(p, -1);
+                db.players.updateAvailableBlock(p,-price);
+                p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.GREEN + "Вы создали участок.");
+                p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.GRAY + "Потрачено блоков: "
+                        + ChatColor.WHITE + (price) + ChatColor.GRAY + ".");
+                resetSelection(p);
+            });
+        });
+    }
+
+    public void updateRegion() {
+        Player p = getPlayer();
+        int price = getUpdatePrice();
+
+        WildPlayer wildPlayer = getWildPlayer(p);
+
+        if (price > 0 && wildPlayer.getAvailableBlocks() < price) {
+            p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.RED + "У вас недостаточно блоков.");
+            return;
+        }
+
+        db.regions.regionStatus(updatedRegion).thenAccept(regionStatus -> Bukkit.getScheduler().runTask(WILDARK.getPlugin(), () -> {
+            if (regionStatus.equals("intersect")){
+                p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.RED + "Участок пересекается с другими.");
+                return;
+            }
+//            else if (regionStatus.equals("close")) {
+//                p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.RED + "Рядом участок больше вашего.");
+//                return;
+//            }
+
+            db.regions.updateRegion(updatedRegion).thenAccept(updated -> Bukkit.getScheduler().runTask(WILDARK.getPlugin(), () -> {{
+                if (!updated) {
+                    p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.RED + "Не удалось обновить участок.");
+                    return;
+                }
+
+                wildRegions = wildRegions.stream().filter(region -> region.getId() != id).collect(Collectors.toList());
+                wildRegions.add(updatedRegion);
+
+                db.players.updateAvailableBlock(p,-price);
+
+                p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.GREEN + "Вы обновили участок.");
+
+                updatedRegion.removeSelectedCorner();
+
+                if (price < 0){
+                    p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.GRAY + "Возвращено блоков: "
+                            + ChatColor.WHITE + (-price) + ChatColor.GRAY + ".");
+                } else {
+                    p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.GRAY + "Потрачено блоков: "
+                            + ChatColor.WHITE + (price) + ChatColor.GRAY + ".");
+                }
+
+                resetSelection(p);
+            }}));
+        }));
+    }
+
+    public void selectNewRegion(Block b) {
+        int selectedCorner = getSelectedCorner();
+
+        if (selectedCorner != 0) {
+            int[] opposite = getCornerOppositeToSelected();
+            int oppositeX = opposite[0];
+            int oppositeZ = opposite[1];
+
+            if (updatedRegion == null){
+                Region newRegion = new Region(getId(), ownerID, getName(), b.getWorld().getName(), oppositeX, oppositeZ, b.getX(), b.getZ());
+                newRegion.selectCorner(b);
+
+                updatedRegion = newRegion;
+            } else {
+                updatedRegion.setSecondCorner(b.getX(), b.getZ());
+                updatedRegion.selectCorner(b);
+            }
+
+            checkNewRegion();
+        }
+    }
+
+    public void checkNewRegion(){
+        Player p = getPlayer();
+
+        int price = getUpdatePrice();
+
+        WildPlayer wildPlayer = getWildPlayer(p);
+        if (updatedRegion.areaSelected()) {
+            ChatColor color = wildPlayer.getAvailableBlocks() >= price ? ChatColor.GREEN : ChatColor.RED;
+            p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.GRAY + "Новый участок: " + ChatColor.WHITE + updatedRegion.getGrid() + ChatColor.GRAY
+                    + (price > 0 ? ". Необходимо блоков: " + color + price : ". Будет возвращено блоков: " + color + (-price)));
+
+            if (price > 0 && wildPlayer.getAvailableBlocks() < price) {
+                p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.RED + "У вас недостаточно блоков.");
+            } else {
+                p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.GRAY + "ШИФТ + ПКМ чтобы обновить границы.");
+            }
+        }
+    }
+
+    private int getUpdatePrice() {
+        Region oldRegion = this;
+        Region newRegion = updatedRegion;
+
+        int oldX1 = Math.min(oldRegion.getX1(), oldRegion.getX2());
+        int oldX2 = Math.max(oldRegion.getX1(), oldRegion.getX2());
+        int oldZ1 = Math.min(oldRegion.getZ1(), oldRegion.getZ2());
+        int oldZ2 = Math.max(oldRegion.getZ1(), oldRegion.getZ2());
+
+        // Ensure that the coordinates are ordered correctly for newRegion
+        int newX1 = Math.min(newRegion.getX1(), newRegion.getX2());
+        int newX2 = Math.max(newRegion.getX1(), newRegion.getX2());
+        int newZ1 = Math.min(newRegion.getZ1(), newRegion.getZ2());
+        int newZ2 = Math.max(newRegion.getZ1(), newRegion.getZ2());
+
+        // Calculate the overlap region
+        int overlapX1 = Math.max(oldX1, newX1);
+        int overlapZ1 = Math.max(oldZ1, newZ1);
+        int overlapX2 = Math.min(oldX2, newX2);
+        int overlapZ2 = Math.min(oldZ2, newZ2);
+
+        int commonBlocks = 0;
+        if (overlapX1 <= overlapX2 && overlapZ1 <= overlapZ2) {
+            int overlapWidth = overlapX2 - overlapX1 + 1;
+            int overlapHeight = overlapZ2 - overlapZ1 + 1;
+            commonBlocks = overlapWidth * overlapHeight;
+        }
+
+        //old difference but 50%
+        int oldDifference = (int) (0.5 * (oldRegion.getArea() - commonBlocks));
+        int newDifference = newRegion.getArea() - commonBlocks;
+
+        return newDifference - oldDifference;
+    }
+
+    private int[] getCornerOppositeToSelected() {
+        int oppositeX = 0;
+        int oppositeZ = 0;
+
+        switch (getSelectedCorner()) {
+            case 1: {
+                oppositeX = getX2();
+                oppositeZ = getZ2();
+                break;
+            }
+            case 2: {
+                oppositeX = getX1();
+                oppositeZ = getZ1();
+                break;
+            }
+            case 3: {
+                oppositeX = getX4();
+                oppositeZ = getZ4();
+                break;
+            }
+            case 4: {
+                oppositeX = getX3();
+                oppositeZ = getZ3();
+                break;
+            }
+        }
+
+        return new int[] {oppositeX, oppositeZ};
+    }
+
+    public void reset() {
+        removeHolo();
+        removeSelectedCorner();
+        if (updatedRegion != null) updatedRegion.reset();
+    }
+
+    private Player getPlayer() {
+        return Bukkit.getPlayer(ownerID);
     }
 }

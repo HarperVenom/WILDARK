@@ -4,7 +4,10 @@ import me.harpervenom.wildark.WILDARK;
 import me.harpervenom.wildark.classes.Region;
 import me.harpervenom.wildark.classes.WildBlock;
 import me.harpervenom.wildark.database.Database;
+import net.md_5.bungee.api.ChatMessageType;
+import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.Chunk;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
@@ -14,25 +17,28 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
+import static me.harpervenom.wildark.WILDARK.db;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
 public class WildChunksListener implements Listener {
 
-    private static Database db;
-
-    public WildChunksListener(Database db) {
-        this.db = db;
+    public WildChunksListener() {
+        db.regions.loadAllRegions().thenAccept(regions -> {
+            wildRegions = regions;
+            regionsLoaded = true;
+        });
     }
 
     HashMap<Chunk, Set<Player>> activeChunks = new HashMap<>();
 
-    public static HashMap<Chunk, List<Region>> wildRegions = new HashMap<>();
+    public static List<Region> wildRegions = new ArrayList<>();
+    public static boolean regionsLoaded = false;
     public static HashMap<Chunk, List<WildBlock>> wildBlocks = new HashMap<>();
 
     @EventHandler
-    public void PlayerMoveEvent(PlayerMoveEvent e){
+    public void PlayerMoveEvent(PlayerMoveEvent e) {
         Player p = e.getPlayer();
 
         Chunk oldChunk = e.getFrom().getChunk();
@@ -78,11 +84,21 @@ public class WildChunksListener implements Listener {
                 db.blocks.getWildBlocks(minX, minZ, maxX, maxZ, world.getName())
                         .thenAccept(blocks -> wildBlocks.put(currentChunk, blocks));
             }
+        }
+    }
 
-            if (!wildRegions.containsKey(currentChunk)) {
-                db.regions.scanArea(world.getName(), minX, minZ, maxX, maxZ)
-                        .thenAccept(regions -> wildRegions.put(currentChunk, regions));
-            }
+    public static void loadChunkSync(Chunk chunk) {
+        if (!wildBlocks.containsKey(chunk)) {
+            int chunkX = chunk.getX();
+            int chunkZ = chunk.getZ();
+
+            int minX = chunkX * 16;
+            int maxX = minX + 15;
+            int minZ = chunkZ * 16;
+            int maxZ = minZ + 15;
+
+            System.out.println("[WILDARK] Loading chunk synchronously...");
+            wildBlocks.put(chunk, db.blocks.getWildBlocksSync(minX, minZ, maxX, maxZ, chunk.getWorld().getName()));
         }
     }
 
@@ -129,7 +145,6 @@ public class WildChunksListener implements Listener {
                     activeChunks.remove(chunk);  // Remove from tracking
                     chunkUnloadTasks.remove(chunk);  // Remove the task
                     wildBlocks.remove(chunk);
-                    wildRegions.remove(chunk);
                 }
             }
         }.runTaskLater(WILDARK.getPlugin(), UNLOAD_DELAY * 20L); // Schedule for UNLOAD_DELAY seconds later
@@ -155,5 +170,16 @@ public class WildChunksListener implements Listener {
         chunks.add(world.getChunkAt(x-1,z+1));
 
         return chunks;
+    }
+
+    public static boolean chunkNotLoaded(Player p, Chunk chunk) {
+        if (!(wildBlocks.containsKey(chunk) && regionsLoaded)) {
+            if (p != null) {
+                p.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(ChatColor.RED + "Не прогружено"));
+            }
+            loadWildChunks(getActiveChunks(chunk));
+            return true;
+        }
+        return false;
     }
 }
