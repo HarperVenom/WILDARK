@@ -18,6 +18,7 @@ import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 import static me.harpervenom.wildark.WILDARK.db;
+import static me.harpervenom.wildark.keys.classes.listeners.LockListener.locks;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -84,6 +85,11 @@ public class WildChunksListener implements Listener {
                 db.blocks.getWildBlocks(minX, minZ, maxX, maxZ, world.getName())
                         .thenAccept(blocks -> wildBlocks.put(currentChunk, blocks));
             }
+
+            if (!locks.containsKey(currentChunk)) {
+                db.locks.getLocks(minX, minZ, maxX, maxZ, world.getName())
+                        .thenAccept(blocks -> locks.put(currentChunk, blocks));
+            }
         }
     }
 
@@ -145,6 +151,7 @@ public class WildChunksListener implements Listener {
                     activeChunks.remove(chunk);  // Remove from tracking
                     chunkUnloadTasks.remove(chunk);  // Remove the task
                     wildBlocks.remove(chunk);
+                    locks.remove(chunk);
                 }
             }
         }.runTaskLater(WILDARK.getPlugin(), UNLOAD_DELAY * 20L); // Schedule for UNLOAD_DELAY seconds later
@@ -173,7 +180,7 @@ public class WildChunksListener implements Listener {
     }
 
     public static boolean chunkNotLoaded(Player p, Chunk chunk) {
-        if (!(wildBlocks.containsKey(chunk) && regionsLoaded)) {
+        if (!(wildBlocks.containsKey(chunk) && regionsLoaded) || !(locks.containsKey(chunk))) {
             if (p != null) {
                 p.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(ChatColor.RED + "Не прогружено"));
             }

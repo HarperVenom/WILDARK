@@ -4,6 +4,7 @@ import me.harpervenom.wildark.WILDARK;
 import me.harpervenom.wildark.classes.Region;
 import me.harpervenom.wildark.classes.WildBlock;
 import me.harpervenom.wildark.database.Database;
+import me.harpervenom.wildark.keys.classes.Lock;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.*;
@@ -14,16 +15,15 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.type.Bed;
 import org.bukkit.block.data.type.Door;
 import org.bukkit.block.data.type.PistonHead;
+import org.bukkit.entity.Creeper;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.FallingBlock;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.block.BlockBreakEvent;
-import org.bukkit.event.block.BlockPistonExtendEvent;
-import org.bukkit.event.block.BlockPistonRetractEvent;
-import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.block.*;
 import org.bukkit.event.entity.EntityChangeBlockEvent;
+import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -35,7 +35,11 @@ import java.util.*;
 
 
 import static me.harpervenom.wildark.Materials.*;
+import static me.harpervenom.wildark.WILDARK.getPlugin;
+import static me.harpervenom.wildark.keys.classes.Lock.getLock;
+import static me.harpervenom.wildark.keys.classes.listeners.LockListener.isUnderDoorBlock;
 import static me.harpervenom.wildark.listeners.WildChunksListener.*;
+import static org.bukkit.Bukkit.getLogger;
 
 public class BlockListener implements Listener {
 
@@ -177,9 +181,12 @@ public class BlockListener implements Listener {
     }
 
     public boolean blockCanBreak(String playerId, Block b) {
+        WildBlock wb = getWildBlock(b);
+        if (wb == null) return true;
         Region region = getBlockRegion(b);
         //owner cant break his blocks. For testing
-        return region == null || !region.getOwnerId().toString().equals(playerId);
+        if (playerId == null) return region == null;
+        else return region == null || !region.getOwnerId().toString().equals(playerId);
     }
 
     public static WildBlock getWildBlock(Block b) {
@@ -205,9 +212,9 @@ public class BlockListener implements Listener {
     }
 
     public static HashMap<Block, Integer> damagedBlocks = new HashMap<>();
-    private final HashMap<Block, BukkitTask> restoreHealthTasks = new HashMap<>();
+    private static final HashMap<Block, BukkitTask> restoreHealthTasks = new HashMap<>();
 
-    public boolean hitBlock(Player p, Block b) {
+    public static boolean hitBlock(Player p, Block b) {
         boolean hasProperTool = false;
         ItemStack tool = p.getInventory().getItemInMainHand();
             Material itemType = tool.getType();
@@ -265,7 +272,7 @@ public class BlockListener implements Listener {
         return false;
     }
 
-    private void scheduleRestoreHealth(Block b) {
+    private static void scheduleRestoreHealth(Block b) {
         int UNLOAD_DELAY = 180;
 
         if (restoreHealthTasks.containsKey(b)) {
@@ -308,5 +315,92 @@ public class BlockListener implements Listener {
         }
 
         return b;
+    }
+
+    @EventHandler
+    public void onCreeperExplosion(EntityExplodeEvent e) {
+        List<Block> blocksToRemove = new ArrayList<>();
+
+        Entity entity = e.getEntity();
+        if (!(entity instanceof Creeper)) return;
+
+        Player p = null;
+        for (Entity nearbyEntity : entity.getNearbyEntities(10, 10, 10)) {
+            if (nearbyEntity instanceof Player) {
+                p = (Player) nearbyEntity;
+                // Log or perform any other actions you need here
+                getLogger().info("Player " + p.getName() + " was near the creeper explosion. "
+                        + e.getLocation().getX() + " " + e.getLocation().getY() + " " + e.getLocation().getZ());
+            }
+        }
+
+        for (Block block : e.blockList()) {
+            Block mainBlock = getMainBlock(block);
+            WildBlock wb = getWildBlock(mainBlock);
+            if (wb == null) continue;
+
+            if (!blockCanBreak(p == null ? null : p.getUniqueId().toString(), mainBlock) || isUnderDoorBlock(block)) {
+                blocksToRemove.add(block);
+            }
+        }
+
+        e.blockList().removeAll(blocksToRemove);
+    }
+
+    @EventHandler
+    public void BlockExplodeEvent(EntityExplodeEvent e){
+        if (e.getEntity() instanceof Creeper) return;
+
+        List<Block> blocksToRemove = new ArrayList<>();
+        Bukkit.broadcastMessage("1");
+        for (Block block : e.blockList()) {
+            Bukkit.broadcastMessage("2");
+            if (block != null) {
+                Bukkit.broadcastMessage("3");
+                if (!blockCanBreak(null, block) && !block.getType().toString().contains("GLASS")) {
+                    Bukkit.broadcastMessage("4");
+                    blocksToRemove.add(block);
+                }
+            }
+        }
+        e.blockList().removeAll(blocksToRemove);
+    }
+
+    @EventHandler
+    public void BlockBurnEvent(BlockBurnEvent e){
+        Block fire = e.getIgnitingBlock();
+        Block b = e.getBlock();
+        if (blockCanBreak(null, b)) return;
+
+        fire.setType(Material.AIR);
+        e.setCancelled(true);
+    }
+
+    @EventHandler
+    public void FireSpread(BlockSpreadEvent e) {
+        if (e.getSource().getType() != Material.FIRE) return;
+
+        boolean isCanceled = checkAllAttachedBlocks(e.getSource());
+        if (isCanceled) e.setCancelled(true);
+    }
+
+    private boolean checkAllAttachedBlocks(Block fireBlock) {
+        // Check below
+        Block below = fireBlock.getRelative(BlockFace.DOWN);
+        if (!blockCanBreak(null, below)) {
+            return true; // If any block fails, return false
+        }
+
+        // Check sides
+        for (BlockFace face : new BlockFace[]{BlockFace.NORTH, BlockFace.SOUTH, BlockFace.EAST, BlockFace.WEST}) {
+            Block side = fireBlock.getRelative(face);
+            if (!blockCanBreak(null, side)) {
+                return true; // If any block fails, return false
+            }
+        }
+
+        // Check above
+        Block above = fireBlock.getRelative(BlockFace.UP);
+        return !blockCanBreak(null, above); // If any block fails, return false
     }
 }

@@ -4,6 +4,7 @@ import me.harpervenom.wildark.classes.RegionStick;
 import me.harpervenom.wildark.database.Database;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -33,18 +34,17 @@ public class StickModeSwitch implements Listener {
         ItemStack tool = e.getItem();
         if (tool == null || tool.getType() != Material.STICK) return;
 
-
         if (!regionStickMap.containsKey(p.getUniqueId())) {
             regionStickMap.put(p.getUniqueId(), new RegionStick());
-        } else {
-            RegionStick stick = regionStickMap.get(p.getUniqueId());
-            stick.switchMode();
-            if (activeRegionMap.containsKey(p.getUniqueId())) {
-                resetSelection(p);
-            }
-            p.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacy(ChatColor.GRAY + "Режим: "
-                    + ChatColor.WHITE + translateMode(stick.getMode())));
         }
+
+        RegionStick stick = regionStickMap.get(p.getUniqueId());
+        stick.switchMode();
+        if (activeRegionMap.containsKey(p.getUniqueId())) {
+            resetSelection(p);
+        }
+        p.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacy(ChatColor.GRAY + "Режим: "
+                + ChatColor.WHITE + translateMode(stick.getMode())));
 
         e.setCancelled(true);
     }

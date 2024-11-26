@@ -48,7 +48,7 @@
                 <artifactId>maven-jar-plugin</artifactId>
                 <version>3.3.0</version>
                 <configuration>
-                    <outputDirectory>C:\Users\Harper\Desktop\Server 1.21\plugins</outputDirectory>
+                    <outputDirectory>C:\Users\Harper\Desktop\Server 1.21.3\plugins</outputDirectory>
                 </configuration>
             </plugin>
         </plugins>
@@ -83,7 +83,7 @@
         <dependency>
             <groupId>org.spigotmc</groupId>
             <artifactId>spigot-api</artifactId>
-            <version>1.21-R0.1-SNAPSHOT</version>
+            <version>1.21.3-R0.1-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -94,7 +94,7 @@
         <dependency>
             <groupId>org.spigotmc</groupId>
             <artifactId>spigot</artifactId>
-            <version>1.21-R0.1-SNAPSHOT</version> <!-- Replace with your Minecraft version -->
+            <version>1.21.3-R0.1-SNAPSHOT</version> <!-- Replace with your Minecraft version -->
             <scope>provided</scope>
         </dependency>
     </dependencies>
