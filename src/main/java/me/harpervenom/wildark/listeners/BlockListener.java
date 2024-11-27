@@ -2,6 +2,7 @@ package me.harpervenom.wildark.listeners;
 
 import me.harpervenom.wildark.WILDARK;
 import me.harpervenom.wildark.classes.Region;
+import me.harpervenom.wildark.classes.Relation;
 import me.harpervenom.wildark.classes.WildBlock;
 import me.harpervenom.wildark.database.Database;
 import me.harpervenom.wildark.keys.classes.Lock;
@@ -181,12 +182,29 @@ public class BlockListener implements Listener {
     }
 
     public boolean blockCanBreak(String playerId, Block b) {
+        loadChunkSync(b.getChunk());
         WildBlock wb = getWildBlock(b);
         if (wb == null) return true;
+
         Region region = getBlockRegion(b);
-        //owner cant break his blocks. For testing
-        if (playerId == null) return region == null;
-        else return region == null || !region.getOwnerId().toString().equals(playerId);
+        if (region == null) return true;
+        if (playerId == null) return false;
+
+        if (region.getOwnerId().toString().equals(playerId)) return true;
+
+        Relation relation = region.getRelation(playerId);
+        if (relation == null) return true;
+
+        if (!wb.getOwnerId().equals(region.getOwnerId().toString())) {
+            if (region.getRelation(wb.getOwnerId()) != null) return true;
+        }
+
+        return switch (relation.relation()) {
+            case "authority" -> true;
+            case "member" -> (wb.getOwnerId().equals(playerId));
+            case "claimed" -> wb.getTimestamp().after(relation.time());
+            default -> false;
+        };
     }
 
     public static WildBlock getWildBlock(Block b) {
@@ -339,7 +357,7 @@ public class BlockListener implements Listener {
             WildBlock wb = getWildBlock(mainBlock);
             if (wb == null) continue;
 
-            if (!blockCanBreak(p == null ? null : p.getUniqueId().toString(), mainBlock) || isUnderDoorBlock(block)) {
+            if (!blockCanBreak(p == null ? null : p.getUniqueId().toString(), mainBlock) || isUnderDoorBlock(mainBlock)) {
                 blocksToRemove.add(block);
             }
         }
@@ -352,13 +370,10 @@ public class BlockListener implements Listener {
         if (e.getEntity() instanceof Creeper) return;
 
         List<Block> blocksToRemove = new ArrayList<>();
-        Bukkit.broadcastMessage("1");
         for (Block block : e.blockList()) {
-            Bukkit.broadcastMessage("2");
             if (block != null) {
-                Bukkit.broadcastMessage("3");
-                if (!blockCanBreak(null, block) && !block.getType().toString().contains("GLASS")) {
-                    Bukkit.broadcastMessage("4");
+                Block mainBlock = getMainBlock(block);
+                if ((!blockCanBreak(null, mainBlock) || isUnderDoorBlock(block)) && !block.getType().toString().contains("GLASS")) {
                     blocksToRemove.add(block);
                 }
             }
@@ -371,7 +386,7 @@ public class BlockListener implements Listener {
         Block fire = e.getIgnitingBlock();
         Block b = e.getBlock();
         if (blockCanBreak(null, b)) return;
-
+        if (fire == null) return;
         fire.setType(Material.AIR);
         e.setCancelled(true);
     }

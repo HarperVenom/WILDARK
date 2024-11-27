@@ -7,6 +7,8 @@ import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -25,6 +27,7 @@ public class WildBlock {
     private int id;
     private Location loc;
     private final String ownerId;
+    private Timestamp timestamp;
 
     static {
         startBatchProcessing();
@@ -35,7 +38,7 @@ public class WildBlock {
         this.ownerId = ownerId;
     }
 
-    public WildBlock(int id, Location loc, String ownerId){
+    public WildBlock(int id, Location loc, String ownerId, Timestamp timestamp){
         this.id = id;
         this.loc = loc;
         this.ownerId = ownerId;
@@ -58,6 +61,10 @@ public class WildBlock {
 
     public String getOwnerId(){
         return ownerId;
+    }
+
+    public Timestamp getTimestamp() {
+        return timestamp;
     }
 
     public void save() {

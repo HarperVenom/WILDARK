@@ -25,11 +25,10 @@ public class BlocksManager {
                     "y INTEGER NOT NULL, " +
                     "z INTEGER NOT NULL, " +
                     "world TEXT NOT NULL, " +
-                    "timestamp DATETIME DEFAULT CURRENT_TIMESTAMP, " +
+                    "timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP, " +
                     "FOREIGN KEY (owner_id) REFERENCES players(id))";
             statement.executeUpdate(sql);
         }
-
     }
 
     public CompletableFuture<Integer> logBlock(String playerUUID, int x, int y, int z, String world) {
@@ -99,7 +98,7 @@ public class BlocksManager {
                     while (rs.next()) {
                         WildBlock block = new WildBlock(rs.getInt("id"), new Location(Bukkit.getWorld(rs.getString("world")), rs.getInt("x"),
                                 rs.getInt("y"),
-                                rs.getInt("z")), rs.getString("owner_id"));
+                                rs.getInt("z")), rs.getString("owner_id"), rs.getTimestamp("timestamp"));
 
                         blocks.add(block);
                     }
@@ -126,7 +125,7 @@ public class BlocksManager {
                     while (rs.next()) {
                         WildBlock block = new WildBlock(rs.getInt("id"), new Location(Bukkit.getWorld(rs.getString("world")), rs.getInt("x"),
                                 rs.getInt("y"),
-                                rs.getInt("z")), rs.getString("owner_id"));
+                                rs.getInt("z")), rs.getString("owner_id"), rs.getTimestamp("timestamp"));
 
                         blocks.add(block);
                     }

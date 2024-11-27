@@ -1,5 +1,6 @@
 package me.harpervenom.wildark.listeners;
 
+import me.harpervenom.wildark.classes.Region;
 import me.harpervenom.wildark.classes.WildPlayer;
 import me.harpervenom.wildark.database.Database;
 import org.bukkit.ChatColor;
@@ -8,8 +9,11 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import static me.harpervenom.wildark.WILDARK.db;
+import static me.harpervenom.wildark.listeners.WildChunksListener.wildRegions;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.UUID;
 
 public class PlayerListener implements Listener {
@@ -31,8 +35,18 @@ public class PlayerListener implements Listener {
                         }
                         wildPlayers.put(id, newWildPlayer);
                     });
+                    return;
                 }
-               wildPlayers.put(id, wildPlayer);
+
+                List<Region> playerRegions = new ArrayList<>();
+                for (Region region : wildRegions) {
+                    if (region.getOwnerId().equals(id)) {
+                        playerRegions.add(region);
+                    }
+                }
+                wildPlayer.setRegions(playerRegions);
+
+                wildPlayers.put(id, wildPlayer);
             });
         }
     }

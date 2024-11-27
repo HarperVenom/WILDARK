@@ -7,6 +7,10 @@ import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -26,7 +30,12 @@ public class Region {
 
     String color = "white";
 
+
+
     private final UUID ownerID;
+    private List<Relation> relations = new ArrayList<>();
+
+
     private final String worldName;
 
     private boolean firstCornerSet;
@@ -184,7 +193,7 @@ public class Region {
     public void select() {
         setColor("blue");
         showHolo();
-        getPlayer().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacy(ChatColor.YELLOW + "Участок выделен."));
+        getPlayer().spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacy(ChatColor.YELLOW + "Участок '" + name + "' выделен."));
     }
 
     public void selectCorner(Block b) {
@@ -514,5 +523,28 @@ public class Region {
 
     private Player getPlayer() {
         return Bukkit.getPlayer(ownerID);
+    }
+
+    public void setRelations(List<Relation> relations) {
+        this.relations = relations;
+    }
+
+    public void addRelation(UUID playerId, String relationValue) {
+        Timestamp timestamp = new java.sql.Timestamp(System.currentTimeMillis());
+        Relation relation = new Relation(playerId.toString(), relationValue, timestamp);
+        relations.add(relation);
+
+        db.regions.addRelation(playerId, id, relationValue, timestamp).thenAccept((isAdded) -> {
+            if (!isAdded) {
+                relations.remove(relation);
+                getPlayer().sendMessage("Не удалось установить отношение");
+            } else {
+                getPlayer().sendMessage("Вы успешно установили отношение: " + relation);
+            }
+        });
+    }
+
+    public Relation getRelation(String playerId) {
+        return relations.stream().filter((relation) -> relation.playerId().equals(playerId)).findFirst().orElse(null);
     }
 }

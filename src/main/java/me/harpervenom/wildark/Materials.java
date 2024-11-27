@@ -51,7 +51,7 @@ public class Materials {
                 )
                 .collect(Collectors.toList());
 
-        exceptions.addAll(lockBlocks);
+//        exceptions.addAll(lockBlocks);
     }
 
     public static List<Material> getTools() {

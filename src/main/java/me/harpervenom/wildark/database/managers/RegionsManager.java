@@ -1,14 +1,12 @@
 package me.harpervenom.wildark.database.managers;
 
 import me.harpervenom.wildark.classes.Region;
+import me.harpervenom.wildark.classes.Relation;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
@@ -28,7 +26,7 @@ public class RegionsManager {
                     "x2 INTEGER NOT NULL, " +
                     "z2 INTEGER NOT NULL, " +
                     "world TEXT NOT NULL, " +
-                    "timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)";
+                    "timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP)";
             statement.executeUpdate(sql);
 
 //            PLAYERS_REGIONS
@@ -36,6 +34,7 @@ public class RegionsManager {
                     "player_id TEXT NOT NULL, " +
                     "region_id INTEGER NOT NULL, " +
                     "relation TEXT NOT NULL, " +
+                    "timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP, " +
                     "FOREIGN KEY (player_id) REFERENCES players(id), " +
                     "FOREIGN KEY (region_id) REFERENCES regions(id), " +
                     "PRIMARY KEY (player_id, region_id))";
@@ -107,14 +106,14 @@ public class RegionsManager {
             int x2 = Math.max(region.getX1(), region.getX2());
             int z2 = Math.max(region.getZ1(), region.getZ2());
 
-            try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
-                pstmt.setInt(1, x1);
-                pstmt.setInt(2, z1);
-                pstmt.setInt(3, x2);
-                pstmt.setInt(4, z2);
-                pstmt.setInt(5, region.getId());
+            try (PreparedStatement ps = connection.prepareStatement(sql)) {
+                ps.setInt(1, x1);
+                ps.setInt(2, z1);
+                ps.setInt(3, x2);
+                ps.setInt(4, z2);
+                ps.setInt(5, region.getId());
 
-                int rowsAffected = pstmt.executeUpdate();
+                int rowsAffected = ps.executeUpdate();
                 return rowsAffected > 0;
             } catch (SQLException e) {
                 System.out.println(e.getMessage());
@@ -123,6 +122,26 @@ public class RegionsManager {
         });
     }
 
+    public CompletableFuture<Boolean> addRelation(UUID playerId, int regionId, String relation, Timestamp timestamp) {
+        return CompletableFuture.supplyAsync(() -> {
+            String sql = "INSERT INTO players_regions (player_id, region_id, relation, timestamp) " +
+                    "VALUES (?, ?, ?, ?) " +
+                    "ON DUPLICATE KEY UPDATE relation = VALUES(relation)";
+
+            try (PreparedStatement ps = connection.prepareStatement(sql)) {
+                ps.setString(1, playerId.toString());
+                ps.setInt(2, regionId);
+                ps.setString(3, relation);
+                ps.setTimestamp(4, timestamp);
+
+                int rowsAffected = ps.executeUpdate();
+                return rowsAffected > 0;
+            } catch (SQLException e) {
+                System.out.println(e.getMessage());
+                return false;
+            }
+        });
+    }
 
     public CompletableFuture<List<Region>> getPlayerRegions(Player p) {
         return CompletableFuture.supplyAsync(() -> {
@@ -279,7 +298,7 @@ public class RegionsManager {
     public CompletableFuture<List<Region>> loadAllRegions() {
         return CompletableFuture.supplyAsync(() -> {
             String query = "SELECT * FROM regions";
-            String playerQuery = "SELECT player_id FROM players_regions WHERE region_id = ?";
+            String playerQuery = "SELECT * FROM players_regions WHERE region_id = ?";
 
             try (PreparedStatement ps = connection.prepareStatement(query)) {
 
@@ -288,30 +307,48 @@ public class RegionsManager {
 
                     while (rs.next()) {
                         int regionId = rs.getInt("id");
-                        String playerId = null;
+
+                        List<Relation> relations = new ArrayList<>();
 
                         try (PreparedStatement playerPs = connection.prepareStatement(playerQuery)) {
                             playerPs.setInt(1, regionId);
                             try (ResultSet playerRs = playerPs.executeQuery()) {
-                                if (playerRs.next()) {
-                                    playerId = playerRs.getString("player_id");
+                                while (playerRs.next()) {
+                                    relations.add(new Relation(
+                                            playerRs.getString("player_id"),
+                                            playerRs.getString("relation"),
+                                            playerRs.getTimestamp("timestamp")));
                                 }
                             }
                         }
 
-                        if (playerId != null) {
-                            Region region = new Region(
-                                    rs.getInt("id"),
-                                    UUID.fromString(playerId),
-                                    rs.getString("name"),
-                                    rs.getString("world"),
-                                    rs.getInt("x1"),
-                                    rs.getInt("z1"),
-                                    rs.getInt("x2"),
-                                    rs.getInt("z2")
-                            );
-                            regions.add(region);
-                        }
+                        if (relations.isEmpty()) return null;
+
+                        final Relation[] ownerRelation = {null};
+
+                        relations = relations.stream().filter((relation) ->  {
+                            if (relation.relation().equals("owner")) {
+                                ownerRelation[0] = relation;
+                                return false;
+                            }
+                            return true;
+                        }).collect(Collectors.toList());
+
+                        if (ownerRelation[0] == null) return null;
+
+                        Region region = new Region(
+                                rs.getInt("id"),
+                                UUID.fromString(ownerRelation[0].playerId()),
+                                rs.getString("name"),
+                                rs.getString("world"),
+                                rs.getInt("x1"),
+                                rs.getInt("z1"),
+                                rs.getInt("x2"),
+                                rs.getInt("z2")
+                        );
+                        region.setRelations(relations);
+
+                        regions.add(region);
                     }
                     return regions;
                 }
@@ -342,11 +379,6 @@ public class RegionsManager {
         }
 
         // Check if one region is completely above the other
-        if (z2_A < z1_B || z2_B < z1_A) {
-            return false;
-        }
-
-        // If neither of the above conditions is true, the regions intersect
-        return true;
+        return z2_A >= z1_B && z2_B >= z1_A;
     }
 }
