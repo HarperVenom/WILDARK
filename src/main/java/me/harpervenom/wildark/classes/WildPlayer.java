@@ -1,21 +1,34 @@
 package me.harpervenom.wildark.classes;
 
+import org.bukkit.Bukkit;
+import org.bukkit.Statistic;
+import org.bukkit.entity.Player;
+import org.bukkit.scheduler.BukkitTask;
+
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
+
+import static me.harpervenom.wildark.WILDARK.db;
+import static me.harpervenom.wildark.WILDARK.getPlugin;
 
 public class WildPlayer {
     private final String id;
-    private final int availableBlocks;
-    private final int availableRegions;
-    private final int minutesPlayed;
+    private int availableBlocks;
+    private int availableRegions;
+    private int accumulator;
+
+    private BukkitTask timer;
 
     private List<Region> regions = new ArrayList<>();
 
-    public WildPlayer(String id, int availableBlocks, int availableRegions, int minutesPlayed) {
+    public WildPlayer(String id, int availableBlocks, int availableRegions, int accumulator) {
         this.id = id;
         this.availableBlocks = availableBlocks;
         this.availableRegions = availableRegions;
-        this.minutesPlayed = minutesPlayed;
+        this.accumulator = accumulator;
+
+        runTimer();
     }
 
     public String getId() {
@@ -30,8 +43,8 @@ public class WildPlayer {
         return availableRegions;
     }
 
-    public int getMinutesPlayed() {
-        return minutesPlayed;
+    public int getAccumulator() {
+        return accumulator;
     }
 
     public void setRegions(List<Region> regions) {
@@ -39,5 +52,51 @@ public class WildPlayer {
     }
     public List<Region> getRegions() {
         return regions;
+    }
+
+    private void runTimer() {
+        timer = Bukkit.getScheduler().runTaskTimer(getPlugin(), () -> {
+            accumulator++;
+            if (accumulator >= 60) {
+                updateBalance();
+                accumulator = 0;
+            }
+            Bukkit.broadcastMessage(accumulator + " - accum");
+            db.players.updateAccumulator(id, accumulator);
+        }, 1200, 1200);
+    }
+
+    public void setOffline() {
+        timer.cancel();
+    }
+
+    public void updateBalance(int blocks, int regions) {
+        if (regions != 0) db.players.updateAvailableRegions(id, regions);
+        if (blocks != 0) db.players.updateAvailableBlock(id, blocks);
+    }
+
+    private void updateBalance() {
+        int blocksChange = 20;
+        int regionsChange = 0;
+        availableBlocks += blocksChange;
+
+        int[] thresholds = {1, 10, 100, 1000};
+        int playedHours = getPlayer().getStatistic(Statistic.PLAY_ONE_MINUTE) / 20 / 60 / 60;
+
+        Bukkit.broadcastMessage(playedHours + "");
+
+        for (int i = 0; i < thresholds.length; i++) {
+            if (playedHours > thresholds[i] && regions.size() + availableRegions <= i + 1) {
+                availableRegions++;
+                regionsChange = 1;
+                break;
+            }
+        }
+
+        updateBalance(blocksChange, regionsChange);
+    }
+
+    private Player getPlayer() {
+        return Bukkit.getPlayer(UUID.fromString(id));
     }
 }

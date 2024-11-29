@@ -19,7 +19,7 @@ public class PlayersManager {
                         "id TEXT NOT NULL, " +
                         "available_blocks INTEGER NOT NULL, " +
                         "available_regions INTEGER NOT NULL, " +
-                        "minutes_played INTEGER NOT NULL, " +
+                        "accumulator INTEGER NOT NULL, " +
                         "timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)";
                 statement.executeUpdate(sql);
             }
@@ -28,7 +28,7 @@ public class PlayersManager {
 
     public CompletableFuture<WildPlayer> create(UUID id) {
         return CompletableFuture.supplyAsync(() -> {
-            String sql = "INSERT INTO players (id, available_blocks, available_regions, minutes_played) VALUES " +
+            String sql = "INSERT INTO players (id, available_blocks, available_regions, accumulator) VALUES " +
                     "(?, ?, ?, ?)";
             try (PreparedStatement ps = connection.prepareStatement(sql)) {
                 int availableBlocks = 0;
@@ -59,7 +59,7 @@ public class PlayersManager {
                         return new WildPlayer(rs.getString("id"),
                                 rs.getInt("available_blocks"),
                                 rs.getInt("available_regions"),
-                                rs.getInt("minutes_played"));
+                                rs.getInt("accumulator"));
                     }
                 }
             } catch (SQLException e) {
@@ -69,12 +69,12 @@ public class PlayersManager {
         });
     }
 
-    public boolean updateAvailableBlock(Player p, int number) {
+    public boolean updateAvailableBlock(String playedId, int number) {
         String sql = "UPDATE players SET available_blocks = available_blocks + ? WHERE id = ?";
 
         try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
             pstmt.setInt(1, number);
-            pstmt.setString(2, p.getUniqueId().toString());
+            pstmt.setString(2, playedId);
 
             int rowsAffected = pstmt.executeUpdate();
             return rowsAffected > 0;
@@ -84,12 +84,27 @@ public class PlayersManager {
         }
     }
 
-    public boolean updateAvailableRegions(Player p, int number) {
+    public boolean updateAvailableRegions(String playedId, int number) {
         String sql = "UPDATE players SET available_regions = available_regions + ? WHERE id = ?";
 
         try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
             pstmt.setInt(1, number);
-            pstmt.setString(2, p.getUniqueId().toString());
+            pstmt.setString(2, playedId);
+
+            int rowsAffected = pstmt.executeUpdate();
+            return rowsAffected > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public boolean updateAccumulator(String playedId, int number) {
+        String sql = "UPDATE players SET accumulator = ? WHERE id = ?";
+
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setInt(1, number);
+            pstmt.setString(2, playedId);
 
             int rowsAffected = pstmt.executeUpdate();
             return rowsAffected > 0;

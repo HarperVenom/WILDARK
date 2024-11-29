@@ -3,12 +3,16 @@ package me.harpervenom.wildark.listeners;
 import me.harpervenom.wildark.classes.Region;
 import me.harpervenom.wildark.classes.WildPlayer;
 import me.harpervenom.wildark.database.Database;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
+
 import static me.harpervenom.wildark.WILDARK.db;
+import static me.harpervenom.wildark.WILDARK.getPlugin;
 import static me.harpervenom.wildark.listeners.WildChunksListener.wildRegions;
 
 import java.util.ArrayList;
@@ -49,6 +53,13 @@ public class PlayerListener implements Listener {
                 wildPlayers.put(id, wildPlayer);
             });
         }
+    }
+
+    @EventHandler
+    public void PlayerQuit(PlayerQuitEvent e) {
+        WildPlayer wp = getWildPlayer(e.getPlayer());
+        if (wp == null) return;
+        wp.setOffline();
     }
 
     public static WildPlayer getWildPlayer(Player p){

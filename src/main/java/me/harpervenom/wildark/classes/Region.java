@@ -324,13 +324,13 @@ public class Region {
     public void create() {
         Player p = getPlayer();
 
-        WildPlayer wildPlayer = getWildPlayer(p);
-        if (wildPlayer.getAvailableBlocks() < getArea()) {
+        WildPlayer wp = getWildPlayer(p);
+        if (wp.getAvailableBlocks() < getArea()) {
             p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.RED + "У вас недостаточно блоков.");
             return;
         }
 
-        if (wildPlayer.getAvailableRegions() < 1){
+        if (wp.getAvailableRegions() < 1){
             p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.RED + "У вас максимальное число участков.");
             return;
         }
@@ -350,8 +350,7 @@ public class Region {
 
                 int price = createdRegion.getArea();
 
-                db.players.updateAvailableRegions(p, -1);
-                db.players.updateAvailableBlock(p,-price);
+                wp.updateBalance(-price, -1);
                 p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.GREEN + "Вы создали участок.");
                 p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.GRAY + "Потрачено блоков: "
                         + ChatColor.WHITE + (price) + ChatColor.GRAY + ".");
@@ -364,9 +363,9 @@ public class Region {
         Player p = getPlayer();
         int price = getUpdatePrice();
 
-        WildPlayer wildPlayer = getWildPlayer(p);
+        WildPlayer wp = getWildPlayer(p);
 
-        if (price > 0 && wildPlayer.getAvailableBlocks() < price) {
+        if (price > 0 && wp.getAvailableBlocks() < price) {
             p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.RED + "У вас недостаточно блоков.");
             return;
         }
@@ -390,7 +389,7 @@ public class Region {
                 wildRegions = wildRegions.stream().filter(region -> region.getId() != id).collect(Collectors.toList());
                 wildRegions.add(updatedRegion);
 
-                db.players.updateAvailableBlock(p,-price);
+                wp.updateBalance(-price, 0);
 
                 p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.GREEN + "Вы обновили участок.");
 
