@@ -1,6 +1,7 @@
 package me.harpervenom.wildark;
 
 import me.harpervenom.wildark.commands.DayDuration;
+import me.harpervenom.wildark.commands.Grant;
 import me.harpervenom.wildark.commands.Menu;
 import me.harpervenom.wildark.database.Database;
 import me.harpervenom.wildark.keys.classes.listeners.KeyListener;
@@ -11,6 +12,9 @@ import me.harpervenom.wildark.listeners.stick.StickAreaListener;
 import me.harpervenom.wildark.listeners.stick.StickBlockListener;
 import me.harpervenom.wildark.listeners.stick.StickRegionListener;
 import org.bukkit.Bukkit;
+import org.bukkit.Difficulty;
+import org.bukkit.GameRule;
+import org.bukkit.World;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -55,6 +59,7 @@ public final class WILDARK extends JavaPlugin {
 
         getCommand("m").setExecutor(new Menu());
         getCommand("setdayduration").setExecutor(new DayDuration());
+        getCommand("grant").setExecutor(new Grant());
 
         getServer().getPluginManager().registerEvents(new Menu(), this);
 
@@ -66,6 +71,18 @@ public final class WILDARK extends JavaPlugin {
             DayDuration.setDayDurationInSeconds(savedDuration);  // Reapply the saved day duration
             System.out.println("[WILDARK] Длительность дня: " + savedDuration + " секунд.");
         }
+
+        getServer().setSpawnRadius(0);
+        System.out.println("[WILDARK] Радиус спавна: 0.");
+
+        for (World world : Bukkit.getWorlds()) {
+            world.setDifficulty(Difficulty.HARD);
+            world.getWorldBorder().setSize(2000);
+            world.setGameRule(GameRule.DO_DAYLIGHT_CYCLE, false);
+            world.setGameRule(GameRule.REDUCED_DEBUG_INFO, true);
+            world.setGameRule(GameRule.PLAYERS_SLEEPING_PERCENTAGE, 101);
+        }
+        System.out.println("[WILDARK] Сложность: Сложная.");
     }
 
     private void loadLanguageFile(String lang) {

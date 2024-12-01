@@ -22,6 +22,7 @@ import org.bukkit.event.inventory.PrepareAnvilEvent;
 import org.bukkit.event.inventory.PrepareItemCraftEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.*;
+import org.bukkit.inventory.meta.BundleMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.ArrayList;
@@ -323,7 +324,7 @@ public class KeyListener implements Listener {
 
             if (quickOpen.containsKey(p.getUniqueId())) {
                 Lock lock = quickOpen.get(p.getUniqueId());
-                quickOpen.get(p.getUniqueId()).setLocked(true, p);
+                lock.setLocked(true, p);
                 quickOpen.remove(p.getUniqueId());
 
                 List<HumanEntity> viewers = new ArrayList<>(e.getViewers());
@@ -349,6 +350,21 @@ public class KeyListener implements Listener {
         for (int i = 0; i < 41; i++) {
             ItemStack item = inv.getItem(i);
             if (item == null) continue;
+
+            if (item.getType().toString().contains("BUNDLE")) {
+                if (item.hasItemMeta() && item.getItemMeta() instanceof BundleMeta bundleMeta) {
+                    // Scan all items inside the bundle
+                    for (ItemStack bundleItem : bundleMeta.getItems()) {
+                        if (bundleItem == null) continue;
+                        Key bundleKey = getKey(bundleItem);
+                        if (bundleKey != null && bundleKey.hasConnection(lock.getKeyId())) {
+                            return true; // Found a valid key in the bundle
+                        }
+                    }
+                }
+                continue;
+            }
+
             Key key = getKey(item);
             if (key == null) continue;
             if (!key.hasConnection(lock.getKeyId())) continue;

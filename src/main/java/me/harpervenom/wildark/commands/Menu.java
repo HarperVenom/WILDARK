@@ -35,7 +35,7 @@ public class Menu implements CommandExecutor, Listener {
             WildPlayer wildplayer = getWildPlayer(p);
 
             if (wildplayer == null) {
-                p.sendMessage( "Не удалось загрузить профиль.");
+                p.sendMessage("Не удалось загрузить профиль.");
             }
 
             db.regions.getPlayerRegions(p).thenAccept(regions -> {

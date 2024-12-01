@@ -8,3 +8,6 @@ commands:
     usage: "/m"
   setdayduration:
     usage: "/setdayduration <duration_in_ticks>"
+  grant:
+    description: Выдать права к участку другому игроку
+    usage: "/grant <player> <region name> <relation>"

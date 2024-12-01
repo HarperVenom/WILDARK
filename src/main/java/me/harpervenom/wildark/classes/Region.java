@@ -531,14 +531,15 @@ public class Region {
     public void addRelation(UUID playerId, String relationValue) {
         Timestamp timestamp = new java.sql.Timestamp(System.currentTimeMillis());
         Relation relation = new Relation(playerId.toString(), relationValue, timestamp);
+        relations = relations.stream().filter(currentRelation -> !currentRelation.playerId().equals(playerId.toString())).collect(Collectors.toList());
         relations.add(relation);
 
         db.regions.addRelation(playerId, id, relationValue, timestamp).thenAccept((isAdded) -> {
             if (!isAdded) {
                 relations.remove(relation);
-                getPlayer().sendMessage("Не удалось установить отношение");
+                getPlayer().sendMessage(ChatColor.RED + "Не удалось установить отношение");
             } else {
-                getPlayer().sendMessage("Вы успешно установили отношение: " + relation);
+                getPlayer().sendMessage(ChatColor.GREEN + "Вы успешно установили отношение: " + relation.relation());
             }
         });
     }

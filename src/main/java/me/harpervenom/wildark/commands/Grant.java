@@ -3,6 +3,7 @@ package me.harpervenom.wildark.commands;
 import me.harpervenom.wildark.classes.Region;
 import me.harpervenom.wildark.classes.WildPlayer;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -33,7 +34,11 @@ public class Grant implements CommandExecutor {
         // Try to find the target player (could also be done via UUID lookup, etc.)
         Player targetPlayer = Bukkit.getPlayer(targetPlayerName);
         if (targetPlayer == null) {
-            p.sendMessage("Игрок " + targetPlayerName + " не найден.");
+            p.sendMessage(ChatColor.RED + "Игрок " + targetPlayerName + " не найден.");
+            return false;
+        }
+        if (targetPlayer.getUniqueId().equals(p.getUniqueId())) {
+            p.sendMessage(ChatColor.RED + "Нельзя менять свои права.");
             return false;
         }
 
@@ -47,14 +52,14 @@ public class Grant implements CommandExecutor {
         }
 
         if (selectedRegion == null) {
-            p.sendMessage("У вас нет региона с названием: " + regionName);
+            p.sendMessage(ChatColor.RED + "У вас нет региона с названием: " + regionName);
             return false;
         }
 
         if (relation.equals("member") || relation.equals("authority") || relation.equals("claimed")) {
             selectedRegion.addRelation(targetPlayer.getUniqueId(), relation);
         } else {
-            p.sendMessage("Такого права не существует.");
+            p.sendMessage(ChatColor.RED + "Такого права не существует.");
             return false;
         }
 

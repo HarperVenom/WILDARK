@@ -33,15 +33,17 @@ public class WildBlock {
         startBatchProcessing();
     }
 
-    public WildBlock(Location loc, String ownerId){
+    public WildBlock(Location loc, String ownerId, Timestamp timestamp){
         this.loc = loc;
         this.ownerId = ownerId;
+        this.timestamp = timestamp;
     }
 
     public WildBlock(int id, Location loc, String ownerId, Timestamp timestamp){
         this.id = id;
         this.loc = loc;
         this.ownerId = ownerId;
+        this.timestamp = timestamp;
     }
 
     public int getId() {
@@ -136,7 +138,8 @@ public class WildBlock {
                     block.getLoc().getBlockX(),
                     block.getLoc().getBlockY(),
                     block.getLoc().getBlockZ(),
-                    block.getLoc().getWorld().getName()
+                    block.getLoc().getWorld().getName(),
+                    block.timestamp
             );
             futures.add(future);
         }

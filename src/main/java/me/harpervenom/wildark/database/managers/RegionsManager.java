@@ -124,9 +124,8 @@ public class RegionsManager {
 
     public CompletableFuture<Boolean> addRelation(UUID playerId, int regionId, String relation, Timestamp timestamp) {
         return CompletableFuture.supplyAsync(() -> {
-            String sql = "INSERT INTO players_regions (player_id, region_id, relation, timestamp) " +
-                    "VALUES (?, ?, ?, ?) " +
-                    "ON DUPLICATE KEY UPDATE relation = VALUES(relation)";
+            String sql = "INSERT OR REPLACE INTO players_regions (player_id, region_id, relation, timestamp) " +
+                    "VALUES (?, ?, ?, ?)";
 
             try (PreparedStatement ps = connection.prepareStatement(sql)) {
                 ps.setString(1, playerId.toString());

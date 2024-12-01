@@ -31,16 +31,17 @@ public class BlocksManager {
         }
     }
 
-    public CompletableFuture<Integer> logBlock(String playerUUID, int x, int y, int z, String world) {
+    public CompletableFuture<Integer> logBlock(String playerUUID, int x, int y, int z, String world, Timestamp timestamp) {
         return CompletableFuture.supplyAsync(() -> {
-            String sql = "INSERT INTO blocks (owner_id, x, y, z, world) VALUES " +
-                    "(?, ?, ?, ?, ?)";
+            String sql = "INSERT INTO blocks (owner_id, x, y, z, world, timestamp) VALUES " +
+                    "(?, ?, ?, ?, ?, ?)";
             try (PreparedStatement ps = connection.prepareStatement(sql)) {
                 ps.setString(1, playerUUID);
                 ps.setInt(2,x);
                 ps.setInt(3,y);
                 ps.setInt(4,z);
                 ps.setString(5, world);
+                ps.setTimestamp(6, timestamp);
 
                 int affectedRows = ps.executeUpdate();
 

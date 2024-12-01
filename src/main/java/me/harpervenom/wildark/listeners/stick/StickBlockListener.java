@@ -17,8 +17,7 @@ import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 
 import static me.harpervenom.wildark.Materials.getMaxBlockHealth;
-import static me.harpervenom.wildark.listeners.BlockListener.damagedBlocks;
-import static me.harpervenom.wildark.listeners.BlockListener.getMainBlock;
+import static me.harpervenom.wildark.listeners.BlockListener.*;
 import static me.harpervenom.wildark.listeners.WildChunksListener.*;
 
 public class StickBlockListener implements Listener {
@@ -51,27 +50,21 @@ public class StickBlockListener implements Listener {
 
         if (chunkNotLoaded(p, chunk)) return;
 
-        Region region = BlockListener.getBlockRegion(b);
-        WildBlock wildBlock = BlockListener.getWildBlock(b);
+        boolean isProtected = isBlockProtected(b);
+        boolean canBreak = blockCanBreak(p.getUniqueId().toString(), b);
 
-        if (wildBlock == null) {
+        if (isProtected) {
+            ChatColor color = canBreak ? ChatColor.GREEN : ChatColor.RED;
+
+            int maxBlockHealth = getMaxBlockHealth(b);
+            int health = maxBlockHealth;
+            if (damagedBlocks.containsKey(b)) {
+                health = damagedBlocks.get(b);
+            }
+
+            p.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacy(color + "Защищено" + " " + health + "/" + maxBlockHealth));
+        } else {
             p.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(ChatColor.GRAY + "Не защищено"));
-            return;
         }
-//        p.sendMessage(ChatColor.YELLOW + "id: " + wildBlock.getId());
-
-        if (region == null){
-            p.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(ChatColor.GRAY + "Не защищено"));
-            return;
-        }
-
-        int maxBlockHealth = getMaxBlockHealth(b);
-        int health = maxBlockHealth;
-        if (damagedBlocks.containsKey(b)) {
-            health = damagedBlocks.get(b);
-        }
-
-        ChatColor color = wildBlock.getOwnerId().equals(p.getUniqueId().toString()) ? ChatColor.GREEN : ChatColor.RED;
-        p.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacy(color + "Защищено" + " " + health + "/" + maxBlockHealth));
     }
 }

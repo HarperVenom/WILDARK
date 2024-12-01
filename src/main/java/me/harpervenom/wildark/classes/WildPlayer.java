@@ -61,13 +61,13 @@ public class WildPlayer {
                 updateBalance();
                 accumulator = 0;
             }
-            Bukkit.broadcastMessage(accumulator + " - accum");
             db.players.updateAccumulator(id, accumulator);
         }, 1200, 1200);
     }
 
-    public void setOffline() {
-        timer.cancel();
+    public void setOffline(boolean isOffline) {
+        if (isOffline) timer.cancel();
+        else runTimer();
     }
 
     public void updateBalance(int blocks, int regions) {
@@ -83,10 +83,8 @@ public class WildPlayer {
         int[] thresholds = {1, 10, 100, 1000};
         int playedHours = getPlayer().getStatistic(Statistic.PLAY_ONE_MINUTE) / 20 / 60 / 60;
 
-        Bukkit.broadcastMessage(playedHours + "");
-
         for (int i = 0; i < thresholds.length; i++) {
-            if (playedHours > thresholds[i] && regions.size() + availableRegions <= i + 1) {
+            if (playedHours >= thresholds[i] && regions.size() + availableRegions <= i + 1) {
                 availableRegions++;
                 regionsChange = 1;
                 break;

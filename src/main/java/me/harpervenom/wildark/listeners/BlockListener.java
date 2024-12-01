@@ -32,6 +32,7 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
 
+import java.sql.Timestamp;
 import java.util.*;
 
 
@@ -57,7 +58,9 @@ public class BlockListener implements Listener {
 
         if (!isTrueBlock(p, b)) return;
 
-        WildBlock wildBlock = new WildBlock(b.getLocation(), p.getUniqueId().toString());
+        Timestamp timestamp = new java.sql.Timestamp(System.currentTimeMillis());
+
+        WildBlock wildBlock = new WildBlock(b.getLocation(), p.getUniqueId().toString(), timestamp);
         wildBlock.save();
     }
 
@@ -181,7 +184,7 @@ public class BlockListener implements Listener {
         }
     }
 
-    public boolean blockCanBreak(String playerId, Block b) {
+    public static boolean blockCanBreak(String playerId, Block b) {
         loadChunkSync(b.getChunk());
         WildBlock wb = getWildBlock(b);
         if (wb == null) return true;
@@ -190,21 +193,44 @@ public class BlockListener implements Listener {
         if (region == null) return true;
         if (playerId == null) return false;
 
-        if (region.getOwnerId().toString().equals(playerId)) return true;
+        String blockOwnerId = wb.getOwnerId();
+        String regionOwnerId = region.getOwnerId().toString();
 
-        Relation relation = region.getRelation(playerId);
-        if (relation == null) return true;
+        if (regionOwnerId.equals(playerId)) return true;
 
-        if (!wb.getOwnerId().equals(region.getOwnerId().toString())) {
-            if (region.getRelation(wb.getOwnerId()) != null) return true;
+        Relation blockOwnerToRegionRelation = region.getRelation(blockOwnerId);
+
+        if (!regionOwnerId.equals(blockOwnerId) && blockOwnerToRegionRelation == null) return true;
+
+        if (region.getRelation(playerId).relation().equals("authority")) return true;
+
+        if (blockOwnerToRegionRelation == null) return false;
+
+        if (blockOwnerToRegionRelation.relation().equals("member")) {
+            return playerId.equals(blockOwnerId);
         }
 
-        return switch (relation.relation()) {
-            case "authority" -> true;
-            case "member" -> (wb.getOwnerId().equals(playerId));
-            case "claimed" -> wb.getTimestamp().after(relation.time());
-            default -> false;
-        };
+        if (blockOwnerToRegionRelation.relation().equals("claimed")) {
+            return blockOwnerToRegionRelation.time().before(wb.getTimestamp());
+        }
+        return true;
+    }
+
+    public static boolean isBlockProtected(Block b) {
+        WildBlock wb = getWildBlock(b);
+        if (wb == null) return false;
+
+        Region region = getBlockRegion(b);
+        if (region == null) return false;
+
+        if (region.getOwnerId().toString().equals(wb.getOwnerId())) return true;
+
+        Relation blockToRegionRelation = region.getRelation(wb.getOwnerId());
+        if (blockToRegionRelation == null) return false;
+        if (blockToRegionRelation.relation().equals("claimed")) {
+            return wb.getTimestamp().before(blockToRegionRelation.time());
+        }
+        return true;
     }
 
     public static WildBlock getWildBlock(Block b) {
@@ -354,8 +380,6 @@ public class BlockListener implements Listener {
 
         for (Block block : e.blockList()) {
             Block mainBlock = getMainBlock(block);
-            WildBlock wb = getWildBlock(mainBlock);
-            if (wb == null) continue;
 
             if (!blockCanBreak(p == null ? null : p.getUniqueId().toString(), mainBlock) || isUnderDoorBlock(mainBlock)) {
                 blocksToRemove.add(block);
