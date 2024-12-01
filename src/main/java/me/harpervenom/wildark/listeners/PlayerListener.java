@@ -100,16 +100,16 @@ public class PlayerListener implements Listener {
                     recipient.sendMessage(
                             ChatColor.DARK_RED + "[W] " +
                                     ChatColor.WHITE + sender.getName() +
-                                    ChatColor.GRAY + ": " + ChatColor.AQUA + message.substring(1)
+                                    " > " + ChatColor.AQUA + message.substring(1)
                     );
                 } else {
                     recipient.sendMessage(
                             ChatColor.DARK_RED + "[W] " +
                                     ChatColor.WHITE + sender.getName() +
-                                    ChatColor.GRAY + ": " + message.substring(1)
+                                    " > " + ChatColor.GRAY + message.substring(1)
                     );
                 }
-                System.out.println("[Global] " + sender.getName() + ": " + message.substring(1));
+                System.out.println("[Global] " + sender.getName() + " > " + message.substring(1));
                 if (!recipient.equals(sender)) {
                     messageReceivedByOthers = true;
                 }
@@ -118,8 +118,7 @@ public class PlayerListener implements Listener {
                 if (distance <= LOCAL_RADIUS) {
                     recipient.sendMessage(
                             ChatColor.DARK_RED + "[W] " +
-                                    ChatColor.WHITE + sender.getName() +
-                                    ChatColor.GRAY + ": " + ChatColor.WHITE + message
+                                    ChatColor.WHITE + sender.getName() + " > " + message
                     );
                     if (!recipient.equals(sender)) {
                         messageReceivedByOthers = true;

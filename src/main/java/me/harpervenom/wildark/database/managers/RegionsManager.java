@@ -142,6 +142,27 @@ public class RegionsManager {
         });
     }
 
+    public CompletableFuture<Boolean> removeRelation(UUID playerId, int regionId) {
+        return CompletableFuture.supplyAsync(() -> {
+            // SQL statement to remove the relation from the players_regions table
+            String sql = "DELETE FROM players_regions WHERE player_id = ? AND region_id = ?";
+
+            try (PreparedStatement ps = connection.prepareStatement(sql)) {
+                // Set the parameters for the player ID and region ID
+                ps.setString(1, playerId.toString());
+                ps.setInt(2, regionId);
+
+                // Execute the delete statement
+                int rowsAffected = ps.executeUpdate();
+                // Return true if a row was deleted, false otherwise
+                return rowsAffected > 0;
+            } catch (SQLException e) {
+                System.out.println(e.getMessage());
+                return false;
+            }
+        });
+    }
+
     public CompletableFuture<List<Region>> getPlayerRegions(Player p) {
         return CompletableFuture.supplyAsync(() -> {
             String query = "SELECT * FROM players_regions WHERE player_id = ?";

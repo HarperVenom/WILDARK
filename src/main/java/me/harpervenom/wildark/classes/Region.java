@@ -529,6 +529,19 @@ public class Region {
     }
 
     public void addRelation(UUID playerId, String relationValue) {
+        if (relationValue.equals("clear")) {
+            relations = relations.stream().filter(relation -> !relation.playerId().equals(playerId.toString())).collect(Collectors.toList());
+            db.regions.removeRelation(playerId, id).thenAccept(removed -> {
+                if (!removed) {
+                    getPlayer().sendMessage(ChatColor.RED + "Не удалось удалить отношение.");
+                    return;
+                }
+
+                getPlayer().sendMessage(ChatColor.GREEN + "Отношение успешно удалено.");
+            });
+            return;
+        }
+
         Timestamp timestamp = new java.sql.Timestamp(System.currentTimeMillis());
         Relation relation = new Relation(playerId.toString(), relationValue, timestamp);
         relations = relations.stream().filter(currentRelation -> !currentRelation.playerId().equals(playerId.toString())).collect(Collectors.toList());
@@ -542,6 +555,10 @@ public class Region {
                 getPlayer().sendMessage(ChatColor.GREEN + "Вы успешно установили отношение: " + relation.relation());
             }
         });
+    }
+
+    public List<Relation> getRelations() {
+        return relations;
     }
 
     public Relation getRelation(String playerId) {

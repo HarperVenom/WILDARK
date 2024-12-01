@@ -2,28 +2,33 @@ package me.harpervenom.wildark.commands;
 
 import me.harpervenom.wildark.WILDARK;
 import me.harpervenom.wildark.classes.Region;
+import me.harpervenom.wildark.classes.Relation;
 import me.harpervenom.wildark.classes.WildPlayer;
-import me.harpervenom.wildark.database.Database;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryCloseEvent;
+import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.UUID;
 
 import static me.harpervenom.wildark.WILDARK.db;
+import static me.harpervenom.wildark.WILDARK.getPlugin;
 import static me.harpervenom.wildark.listeners.PlayerListener.getWildPlayer;
 
 public class Menu implements CommandExecutor, Listener {
@@ -85,13 +90,10 @@ public class Menu implements CommandExecutor, Listener {
         }
     }
 
-    @EventHandler
-    public void onInventoryClick(InventoryClickEvent e) {
-        if (e.getView().getTitle().equals("Ваши Участки")){
-            e.setCancelled(true);
-            return;
-        }
+    HashMap<UUID, List<Inventory>> previousMenu = new HashMap<>();
 
+    @EventHandler
+    public void MenuClick(InventoryClickEvent e) {
         if (e.getView().getTitle().equals("Меню")) {
             e.setCancelled(true);
 
@@ -99,38 +101,128 @@ public class Menu implements CommandExecutor, Listener {
             ItemStack clickedItem = e.getCurrentItem();
             if (clickedItem == null) return;
             if (clickedItem.hasItemMeta() && ChatColor.stripColor(clickedItem.getItemMeta().getDisplayName()).equals("Участки")) {
+                previousMenu.computeIfAbsent(p.getUniqueId(), k -> new ArrayList<>()).add(e.getClickedInventory());
                 openRegionsTab(p);
             }
         }
     }
 
+    @EventHandler
+    public void RegionsMenuClick(InventoryClickEvent e) {
+        if (!e.getView().getTitle().equals("Ваши Участки")) return;
+        e.setCancelled(true);
+
+        Player p = (Player) e.getWhoClicked();
+        ItemStack clickedItem = e.getCurrentItem();
+        if (clickedItem == null) return;
+
+        WildPlayer wp = getWildPlayer(p);
+        if (wp == null) return;
+        List<Region> regions = wp.getRegions();
+
+        for (int i = 0; i < regions.size(); i++) {
+            if (e.getSlot() == i) {
+                previousMenu.computeIfAbsent(p.getUniqueId(), k -> new ArrayList<>()).add(e.getClickedInventory());
+                openRegionTab(p, regions.get(i));
+                return;
+            }
+        }
+    }
+
+    @EventHandler
+    public void RegionMenuClick(InventoryClickEvent e) {
+        Player p = (Player) e.getWhoClicked();
+
+        if (!openedRegionTabName.containsKey(p.getUniqueId())) return;
+        if (!e.getView().getTitle().equals(openedRegionTabName.get(p.getUniqueId()))) return;
+        e.setCancelled(true);
+    }
+
+    @EventHandler
+    public void InventoryClose(InventoryCloseEvent e) {
+        Player p = (Player) e.getPlayer();
+
+        Bukkit.getScheduler().runTaskLater(getPlugin(), () -> {
+            if (p.getOpenInventory().getType() == InventoryType.CRAFTING) {
+                if (!previousMenu.containsKey(p.getUniqueId())) return;
+                openLastMenu(p);
+            }
+        }, 1);
+    }
+
     public void openRegionsTab(Player p) {
-        db.regions.getPlayerRegions(p).thenAccept(regions -> {
-            Inventory regionsTab = Bukkit.createInventory(null, 27, "Ваши Участки");
+        WildPlayer wp = getWildPlayer(p);
+        if (wp == null) return;
+        List<Region> regions = wp.getRegions();
 
-            List<ItemStack> regionItems = new ArrayList<>();
+        Inventory regionsTab = Bukkit.createInventory(null, 27, "Ваши Участки");
 
-            for (Region region : regions) {
-                ItemStack item = new ItemStack(Material.FILLED_MAP);
-                ItemMeta itemMeta = item.getItemMeta();
+        List<ItemStack> regionItems = new ArrayList<>();
 
-                itemMeta.setDisplayName(ChatColor.YELLOW + region.getName());
-                itemMeta.addItemFlags(ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
+        for (Region region : regions) {
+            ItemStack item = new ItemStack(Material.FILLED_MAP);
+            ItemMeta itemMeta = item.getItemMeta();
 
-                List<String> lore = new ArrayList<>();
-                lore.add(ChatColor.GRAY + "Размер: " + ChatColor.WHITE + region.getWidth() + "x" + region.getLength());
-                itemMeta.setLore(lore);
+            itemMeta.setDisplayName(ChatColor.YELLOW + region.getName());
+            itemMeta.addItemFlags(ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
 
-                item.setItemMeta(itemMeta);
+            List<String> lore = new ArrayList<>();
+            lore.add(ChatColor.GRAY + "Размер: " + ChatColor.WHITE + region.getWidth() + "x" + region.getLength());
+            itemMeta.setLore(lore);
 
-                regionItems.add(item);
-            }
+            item.setItemMeta(itemMeta);
 
-            for (int i = 0; i < regionItems.size(); i++) {
-                regionsTab.setItem(i,regionItems.get(i));
-            }
+            regionItems.add(item);
+        }
 
-            Bukkit.getScheduler().runTask(WILDARK.getPlugin(), () -> p.openInventory(regionsTab));
-        });
+        for (int i = 0; i < regionItems.size(); i++) {
+            regionsTab.setItem(i, regionItems.get(i));
+        }
+
+        p.openInventory(regionsTab);
+    }
+
+    HashMap<UUID, String> openedRegionTabName = new HashMap<>();
+
+    public void openRegionTab(Player p, Region region) {
+        String name = "Участок: " + region.getName();
+
+        Inventory regionTab = Bukkit.createInventory(null, 27, name);
+
+        List<ItemStack> relationItems = new ArrayList<>();
+
+        for (Relation relation : region.getRelations()) {
+            ItemStack relationItem = new ItemStack(Material.PLAYER_HEAD);
+            ItemMeta meta = relationItem.getItemMeta();
+
+            OfflinePlayer relative = Bukkit.getOfflinePlayer(UUID.fromString(relation.playerId()));
+
+            meta.setDisplayName(ChatColor.WHITE + relative.getName());
+
+            List<String> lore = new ArrayList<>();
+            lore.add(ChatColor.GRAY + "Связь: " + relation.relation());
+
+            meta.setLore(lore);
+
+            relationItem.setItemMeta(meta);
+
+            relationItems.add(relationItem);
+        }
+
+        for (int i = 0; i < relationItems.size(); i++) {
+            regionTab.setItem(i, relationItems.get(i));
+        }
+
+        openedRegionTabName.put(p.getUniqueId(), name);
+
+        p.openInventory(regionTab);
+    }
+
+    public void openLastMenu(Player p) {
+        List<Inventory> menus = previousMenu.get(p.getUniqueId());
+        if (menus != null && !menus.isEmpty()) {
+            Inventory lastMenu = menus.remove(menus.size() - 1);
+            p.openInventory(lastMenu);
+        }
     }
 }
