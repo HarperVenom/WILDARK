@@ -1,8 +1,6 @@
 package me.harpervenom.wildark;
 
-import me.harpervenom.wildark.commands.DayDuration;
-import me.harpervenom.wildark.commands.Grant;
-import me.harpervenom.wildark.commands.Menu;
+import me.harpervenom.wildark.commands.*;
 import me.harpervenom.wildark.database.Database;
 import me.harpervenom.wildark.keys.classes.listeners.KeyListener;
 import me.harpervenom.wildark.keys.classes.listeners.LockListener;
@@ -60,6 +58,8 @@ public final class WILDARK extends JavaPlugin {
         getCommand("m").setExecutor(new Menu());
         getCommand("setdayduration").setExecutor(new DayDuration());
         getCommand("grant").setExecutor(new Grant());
+        getCommand("help").setExecutor(new Help());
+        getCommand("delete").setExecutor(new DeleteRegion());
 
         getServer().getPluginManager().registerEvents(new Menu(), this);
 
@@ -77,11 +77,12 @@ public final class WILDARK extends JavaPlugin {
 
         for (World world : Bukkit.getWorlds()) {
             world.setDifficulty(Difficulty.HARD);
-            world.getWorldBorder().setSize(2000);
+            world.getWorldBorder().setSize(4000);
             world.setGameRule(GameRule.DO_DAYLIGHT_CYCLE, false);
             world.setGameRule(GameRule.REDUCED_DEBUG_INFO, true);
             world.setGameRule(GameRule.PLAYERS_SLEEPING_PERCENTAGE, 101);
         }
+        System.out.println("[WILDARK] Диаметр мира: 4000.");
         System.out.println("[WILDARK] Сложность: Сложная.");
     }
 

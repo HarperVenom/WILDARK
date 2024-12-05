@@ -9,7 +9,6 @@ import org.bukkit.entity.Player;
 
 import java.sql.Timestamp;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -60,6 +59,8 @@ public class Region {
     private HoloBlock fourthHoloBlock;
 
     private HoloArea holoArea;
+
+    public static double returnCoefficient = 0.5;
 
     public Region(Player p, String worldName, int x1, int z1) {
         this.ownerID = p.getUniqueId();
@@ -213,7 +214,7 @@ public class Region {
             updatedRegion.z1 = updatedRegion.selectedZ;
             updatedRegion.x2 = opposite[0];
             updatedRegion.z2 = opposite[1];
-            checkNewRegion();
+            checkNew();
         }
     }
 
@@ -310,13 +311,12 @@ public class Region {
         WildPlayer wildPlayer = getWildPlayer(p);
         if (areaSelected()) {
             ChatColor color = wildPlayer.getAvailableBlocks() >= getArea() ? ChatColor.GREEN : ChatColor.RED;
-            p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.GRAY + "Участок: "
-                    + ChatColor.WHITE + getGrid() + ChatColor.GRAY + ". Необходимо блоков: " + color + getArea());
+            p.sendMessage("Участок: " + getGrid() + ". Необходимо блоков: " + color + getArea());
 
             if (wildPlayer.getAvailableBlocks() < getArea()) {
-                p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.RED + "У вас недостаточно блоков.");
+                p.sendMessage(ChatColor.RED + "У вас недостаточно блоков.");
             } else {
-                p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.GRAY + "ШИФТ + ПКМ чтобы создать");
+                p.sendMessage("ШИФТ + ПКМ чтобы создать");
             }
         }
     }
@@ -326,21 +326,21 @@ public class Region {
 
         WildPlayer wp = getWildPlayer(p);
         if (wp.getAvailableBlocks() < getArea()) {
-            p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.RED + "У вас недостаточно блоков.");
+            p.sendMessage(ChatColor.RED + "У вас недостаточно блоков.");
             return;
         }
 
         if (wp.getAvailableRegions() < 1){
-            p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.RED + "У вас максимальное число участков.");
+            p.sendMessage(ChatColor.RED + "У вас максимальное число участков.");
             return;
         }
 
         db.regions.regionStatus(this).thenAccept(regionStatus -> {
             if (regionStatus.equals("intersect")){
-                p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.RED + "Участок пересекается с другими.");
+                p.sendMessage(ChatColor.RED + "Участок пересекается с другими.");
                 return;
             } else if (regionStatus.equals("close")) {
-                p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.RED + "Рядом участок больше вашего.");
+                p.sendMessage(ChatColor.RED + "Рядом участок больше вашего.");
                 return;
             }
 
@@ -350,29 +350,31 @@ public class Region {
 
                 int price = createdRegion.getArea();
 
+                wp.addRegion(createdRegion);
                 wp.updateBalance(-price, -1);
-                p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.GREEN + "Вы создали участок.");
-                p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.GRAY + "Потрачено блоков: "
-                        + ChatColor.WHITE + (price) + ChatColor.GRAY + ".");
+
+                p.sendMessage(ChatColor.GREEN + "Вы создали участок.");
+//                p.sendMessage("Потрачено блоков: " + (price) + ".");
+
                 resetSelection(p);
             });
         });
     }
 
-    public void updateRegion() {
+    public void update() {
         Player p = getPlayer();
         int price = getUpdatePrice();
 
         WildPlayer wp = getWildPlayer(p);
 
         if (price > 0 && wp.getAvailableBlocks() < price) {
-            p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.RED + "У вас недостаточно блоков.");
+            p.sendMessage(ChatColor.RED + "У вас недостаточно блоков.");
             return;
         }
 
         db.regions.regionStatus(updatedRegion).thenAccept(regionStatus -> Bukkit.getScheduler().runTask(WILDARK.getPlugin(), () -> {
             if (regionStatus.equals("intersect")){
-                p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.RED + "Участок пересекается с другими.");
+                p.sendMessage(ChatColor.RED + "Участок пересекается с другими.");
                 return;
             }
 //            else if (regionStatus.equals("close")) {
@@ -382,7 +384,7 @@ public class Region {
 
             db.regions.updateRegion(updatedRegion).thenAccept(updated -> Bukkit.getScheduler().runTask(WILDARK.getPlugin(), () -> {{
                 if (!updated) {
-                    p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.RED + "Не удалось обновить участок.");
+                    p.sendMessage(ChatColor.RED + "Не удалось обновить участок.");
                     return;
                 }
 
@@ -391,24 +393,29 @@ public class Region {
 
                 wp.updateBalance(-price, 0);
 
-                p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.GREEN + "Вы обновили участок.");
+                p.sendMessage(ChatColor.GREEN + "Вы обновили участок.");
 
                 updatedRegion.removeSelectedCorner();
 
-                if (price < 0){
-                    p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.GRAY + "Возвращено блоков: "
-                            + ChatColor.WHITE + (-price) + ChatColor.GRAY + ".");
-                } else {
-                    p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.GRAY + "Потрачено блоков: "
-                            + ChatColor.WHITE + (price) + ChatColor.GRAY + ".");
-                }
+//                if (price < 0){
+//                    p.sendMessage("Возвращено блоков: " + (-price) + ".");
+//                } else {
+//                    p.sendMessage("Потрачено блоков: " + (price) + ".");
+//                }
 
                 resetSelection(p);
             }}));
         }));
     }
 
-    public void selectNewRegion(Block b) {
+    public void delete() {
+        resetSelection(getPlayer());
+
+        wildRegions.remove(this);
+        db.regions.deleteRegion(id);
+    }
+
+    public void selectNew(Block b) {
         int selectedCorner = getSelectedCorner();
 
         if (selectedCorner != 0) {
@@ -426,11 +433,11 @@ public class Region {
                 updatedRegion.selectCorner(b);
             }
 
-            checkNewRegion();
+            checkNew();
         }
     }
 
-    public void checkNewRegion(){
+    public void checkNew(){
         Player p = getPlayer();
 
         int price = getUpdatePrice();
@@ -438,13 +445,13 @@ public class Region {
         WildPlayer wildPlayer = getWildPlayer(p);
         if (updatedRegion.areaSelected()) {
             ChatColor color = wildPlayer.getAvailableBlocks() >= price ? ChatColor.GREEN : ChatColor.RED;
-            p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.GRAY + "Новый участок: " + ChatColor.WHITE + updatedRegion.getGrid() + ChatColor.GRAY
+            p.sendMessage("Новый участок: " + updatedRegion.getGrid()
                     + (price > 0 ? ". Необходимо блоков: " + color + price : ". Будет возвращено блоков: " + color + (-price)));
 
             if (price > 0 && wildPlayer.getAvailableBlocks() < price) {
-                p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.RED + "У вас недостаточно блоков.");
+                p.sendMessage(ChatColor.RED + "У вас недостаточно блоков.");
             } else {
-                p.sendMessage(ChatColor.WHITE + "[W] " + ChatColor.GRAY + "ШИФТ + ПКМ чтобы обновить границы.");
+                p.sendMessage("ШИФТ + ПКМ чтобы обновить границы.");
             }
         }
     }
@@ -478,7 +485,7 @@ public class Region {
         }
 
         //old difference but 50%
-        int oldDifference = (int) (0.5 * (oldRegion.getArea() - commonBlocks));
+        int oldDifference = (int) (returnCoefficient * (oldRegion.getArea() - commonBlocks));
         int newDifference = newRegion.getArea() - commonBlocks;
 
         return newDifference - oldDifference;

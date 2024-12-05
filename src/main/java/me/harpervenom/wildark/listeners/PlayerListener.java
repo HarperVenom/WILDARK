@@ -2,6 +2,8 @@ package me.harpervenom.wildark.listeners;
 
 import me.harpervenom.wildark.classes.Region;
 import me.harpervenom.wildark.classes.WildPlayer;
+import net.md_5.bungee.api.ChatMessageType;
+import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -12,6 +14,7 @@ import org.bukkit.event.player.*;
 
 import static me.harpervenom.wildark.WILDARK.db;
 import static me.harpervenom.wildark.WILDARK.getPlugin;
+import static me.harpervenom.wildark.commands.Help.showGeneralInfo;
 import static me.harpervenom.wildark.listeners.WildChunksListener.wildRegions;
 
 import java.util.*;
@@ -26,6 +29,8 @@ public class PlayerListener implements Listener {
 
         e.setJoinMessage(ChatColor.YELLOW + p.getName() + " в игре.");
         UUID id = p.getUniqueId();
+
+        if (!p.hasPlayedBefore()) Bukkit.getScheduler().runTaskLater(getPlugin(),() -> showGeneralInfo(p),1);
 
         if (!wildPlayers.containsKey(id)) {
             db.players.getPlayer(id.toString()).thenAccept((wildPlayer) -> {
@@ -97,16 +102,14 @@ public class PlayerListener implements Listener {
             if (isGlobal) {
                 // Global Chat
                 if (distance <= LOCAL_RADIUS) {
-                    recipient.sendMessage(
-                            ChatColor.DARK_RED + "[W] " +
+                    recipient.sendMessage("<" +
                                     ChatColor.WHITE + sender.getName() +
-                                    " > " + ChatColor.AQUA + message.substring(1)
+                                    "> " + ChatColor.AQUA + message.substring(1)
                     );
                 } else {
-                    recipient.sendMessage(
-                            ChatColor.DARK_RED + "[W] " +
+                    recipient.sendMessage("<" +
                                     ChatColor.WHITE + sender.getName() +
-                                    " > " + ChatColor.GRAY + message.substring(1)
+                                    "> " + ChatColor.GRAY + message.substring(1)
                     );
                 }
                 System.out.println("[Global] " + sender.getName() + " > " + message.substring(1));
@@ -116,9 +119,8 @@ public class PlayerListener implements Listener {
             } else {
                 // Local Chat
                 if (distance <= LOCAL_RADIUS) {
-                    recipient.sendMessage(
-                            ChatColor.DARK_RED + "[W] " +
-                                    ChatColor.WHITE + sender.getName() + " > " + message
+                    recipient.sendMessage("<" +
+                                    ChatColor.WHITE + sender.getName() + "> " + message
                     );
                     if (!recipient.equals(sender)) {
                         messageReceivedByOthers = true;
@@ -131,7 +133,7 @@ public class PlayerListener implements Listener {
 
         // Notify the sender if no one else received the message
         if (!messageReceivedByOthers) {
-            sender.sendMessage(ChatColor.RED + "Вас никто не услышал...");
+            sender.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(ChatColor.GRAY + "Вас никто не услышал..."));
         }
     }
 

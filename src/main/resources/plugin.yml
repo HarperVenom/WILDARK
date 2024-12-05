@@ -3,6 +3,9 @@ version: '1.0'
 main: me.harpervenom.wildark.WILDARK
 api-version: '1.21.3'
 commands:
+  help:
+    description: Информация о сервере
+    usage: "/help"
   m:
     description: Личная информация
     usage: "/m"
@@ -11,3 +14,6 @@ commands:
   grant:
     description: Выдать права к участку другому игроку
     usage: "/grant <player> <region name> <relation>"
+  delete:
+    description: Удалить свой участок
+    usageg: "/delete <region name>"

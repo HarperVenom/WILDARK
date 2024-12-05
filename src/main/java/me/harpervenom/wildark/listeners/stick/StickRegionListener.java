@@ -3,7 +3,6 @@ package me.harpervenom.wildark.listeners.stick;
 import me.harpervenom.wildark.WILDARK;
 import me.harpervenom.wildark.classes.Region;
 import me.harpervenom.wildark.classes.RegionStick;
-import me.harpervenom.wildark.database.Database;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.*;
@@ -51,7 +50,7 @@ public class StickRegionListener implements Listener {
             if (!activeRegion.exists()) {
                 activeRegion.create();
             } else {
-                if (activeRegion.updatedRegion != null) activeRegion.updateRegion();
+                if (activeRegion.updatedRegion != null) activeRegion.update();
             }
         } else if (e.getAction() == Action.LEFT_CLICK_BLOCK) {
             if (b == null) return;
@@ -91,7 +90,7 @@ public class StickRegionListener implements Listener {
                         } else {
                             Bukkit.getScheduler().cancelTask(doubleClick.get(p.getUniqueId()));
 
-                            activeRegion.selectNewRegion(b);
+                            activeRegion.selectNew(b);
 
                             doubleClick.remove(p.getUniqueId());
                         }

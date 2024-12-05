@@ -89,6 +89,9 @@ public class BlockListener implements Listener {
             if (!destroyed) {
                 e.setCancelled(true);
             } else {
+                if (b.getType() == Material.NETHERITE_BLOCK || b.getType() == Material.DIAMOND_BLOCK) {
+                    e.setDropItems(false);
+                }
                 wildBlock.remove();
             }
         }
@@ -162,14 +165,14 @@ public class BlockListener implements Listener {
         if (e.getTo() != Material.AIR) return;
         Block b = e.getBlock();
 
+        if (!(e.getEntity() instanceof FallingBlock falling)) return;
+
         loadChunkSync(b.getChunk());
 
         WildBlock wildBlock = getWildBlock(b);
         if (wildBlock == null) return;
 
-        if (e.getEntity() instanceof FallingBlock falling) {
-            fallingBlocks.put(falling, wildBlock);
-        }
+        fallingBlocks.put(falling, wildBlock);
     }
 
     @EventHandler

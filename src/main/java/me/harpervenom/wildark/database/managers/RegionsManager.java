@@ -122,6 +122,31 @@ public class RegionsManager {
         });
     }
 
+    public CompletableFuture<Boolean> deleteRegion(int regionId) {
+        return CompletableFuture.supplyAsync(() -> {
+            String deleteRelationsSql = "DELETE FROM players_regions WHERE region_id = ?";
+            String deleteRegionSql = "DELETE FROM regions WHERE id = ?";
+
+            try (PreparedStatement deleteRelationsStmt = connection.prepareStatement(deleteRelationsSql);
+                 PreparedStatement deleteRegionStmt = connection.prepareStatement(deleteRegionSql)) {
+
+                // Delete all relations connected to the region
+                deleteRelationsStmt.setInt(1, regionId);
+                deleteRelationsStmt.executeUpdate();
+
+                // Delete the region itself
+                deleteRegionStmt.setInt(1, regionId);
+                int rowsAffected = deleteRegionStmt.executeUpdate();
+
+                return rowsAffected > 0; // Returns true if the region was successfully deleted
+            } catch (SQLException e) {
+                System.out.println(e.getMessage());
+                return false;
+            }
+        });
+    }
+
+
     public CompletableFuture<Boolean> addRelation(UUID playerId, int regionId, String relation, Timestamp timestamp) {
         return CompletableFuture.supplyAsync(() -> {
             String sql = "INSERT OR REPLACE INTO players_regions (player_id, region_id, relation, timestamp) " +
@@ -204,25 +229,6 @@ public class RegionsManager {
 
             return regions;
         });
-    }
-
-    public Player getRegionOwner(int regionId) {
-        String query = "SELECT player_id FROM players_regions WHERE region_id = ? AND relation = 'owner'";
-
-        try (PreparedStatement ps = connection.prepareStatement(query)) {
-            ps.setInt(1, regionId);
-
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    return Bukkit.getPlayer(UUID.fromString(rs.getString("player_id")));
-                } else {
-                    return null; // No owner found
-                }
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return null;
-        }
     }
 
     public CompletableFuture<String> regionStatus(Region region) {
