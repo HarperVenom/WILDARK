@@ -56,7 +56,7 @@ public class Grant implements CommandExecutor {
             return false;
         }
 
-        if (relation.equals("member") || relation.equals("authority") || relation.equals("claimed")) {
+        if (relation.equals("member") || relation.equals("authority") || relation.equals("claim") || relation.equals("clear")) {
             selectedRegion.addRelation(targetPlayer.getUniqueId(), relation);
         } else {
             p.sendMessage(ChatColor.RED + "Такого права не существует.");

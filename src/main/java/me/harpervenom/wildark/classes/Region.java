@@ -210,10 +210,9 @@ public class Region {
 
         if (updatedRegion != null) {
             int[] opposite = getCornerOppositeToSelected();
-            updatedRegion.x1 = updatedRegion.selectedX;
-            updatedRegion.z1 = updatedRegion.selectedZ;
-            updatedRegion.x2 = opposite[0];
-            updatedRegion.z2 = opposite[1];
+            updatedRegion.x1 = opposite[0];
+            updatedRegion.z1 = opposite[1];
+            updatedRegion.showHolo();
             checkNew();
         }
     }
@@ -429,7 +428,16 @@ public class Region {
 
                 updatedRegion = newRegion;
             } else {
-                updatedRegion.setSecondCorner(b.getX(), b.getZ());
+                updatedRegion.x2 = b.getX();
+                updatedRegion.z2 = b.getZ();
+                updatedRegion.secondCornerSet = true;
+
+                updatedRegion.x3 = x1;
+                updatedRegion.z3 = z2;
+
+                updatedRegion.x4 = x2;
+                updatedRegion.z4 = z1;
+
                 updatedRegion.selectCorner(b);
             }
 
@@ -524,7 +532,10 @@ public class Region {
     public void reset() {
         removeHolo();
         removeSelectedCorner();
-        if (updatedRegion != null) updatedRegion.reset();
+        if (updatedRegion != null) {
+            updatedRegion.reset();
+            updatedRegion = null;
+        }
     }
 
     private Player getPlayer() {

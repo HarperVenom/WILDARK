@@ -213,7 +213,7 @@ public class BlockListener implements Listener {
             return playerId.equals(blockOwnerId);
         }
 
-        if (blockOwnerToRegionRelation.relation().equals("claimed")) {
+        if (blockOwnerToRegionRelation.relation().equals("claim")) {
             return blockOwnerToRegionRelation.time().before(wb.getTimestamp());
         }
         return true;
@@ -230,7 +230,7 @@ public class BlockListener implements Listener {
 
         Relation blockToRegionRelation = region.getRelation(wb.getOwnerId());
         if (blockToRegionRelation == null) return false;
-        if (blockToRegionRelation.relation().equals("claimed")) {
+        if (blockToRegionRelation.relation().equals("claim")) {
             return wb.getTimestamp().before(blockToRegionRelation.time());
         }
         return true;

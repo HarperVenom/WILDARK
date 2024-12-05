@@ -86,7 +86,7 @@ public class StickRegionListener implements Listener {
                             };
 
                             int taskId = task.runTaskLater(WILDARK.getPlugin(), 20).getTaskId();
-                            doubleClick.put(p.getUniqueId(),taskId);
+                            doubleClick.put(p.getUniqueId(), taskId);
                         } else {
                             Bukkit.getScheduler().cancelTask(doubleClick.get(p.getUniqueId()));
 
@@ -101,6 +101,11 @@ public class StickRegionListener implements Listener {
 
                 region.select();
                 activeRegionMap.put(p.getUniqueId(), region);
+
+                if (doubleClick.containsKey(p.getUniqueId())) {
+                    Bukkit.getScheduler().cancelTask(doubleClick.get(p.getUniqueId()));
+                    doubleClick.remove(p.getUniqueId());
+                }
             } else {
                 if (activeRegion == null || activeRegion.exists()) {
                     if (activeRegion != null) activeRegion.reset();
