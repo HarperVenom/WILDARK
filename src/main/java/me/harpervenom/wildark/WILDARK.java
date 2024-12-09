@@ -61,6 +61,9 @@ public final class WILDARK extends JavaPlugin {
         getCommand("help").setExecutor(new Help());
         getCommand("delete").setExecutor(new DeleteRegion());
 
+        getCommand("mute").setExecutor(new Mute());
+        getCommand("ban").setExecutor(new Ban());
+
         getServer().getPluginManager().registerEvents(new Menu(), this);
 
         System.out.println("[WILDARK] Плагин запущен.");

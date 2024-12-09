@@ -87,6 +87,13 @@ public class PlayerListener implements Listener {
         event.setCancelled(true);
 
         Player sender = event.getPlayer();
+
+        WildPlayer wp = getWildPlayer(sender);
+        if (wp.getMuted() > 0) {
+            sender.sendMessage(ChatColor.RED + "Вы сможете писать в чат через: " + wp.getMuted() + " секунд.");
+            return;
+        }
+
         String message = event.getMessage();
         Location senderLocation = sender.getLocation();
         boolean isGlobal = message.startsWith("!");

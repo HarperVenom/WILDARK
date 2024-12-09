@@ -1,5 +1,7 @@
 package me.harpervenom.wildark.commands;
 
+import net.md_5.bungee.api.chat.ClickEvent;
+import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -12,17 +14,22 @@ public class Help implements CommandExecutor {
         if (!(sender instanceof Player p)) return false;
 
         showGeneralInfo(p);
-//        p.sendMessage("Помимо этого, в игру введены небольшие изменения: ");
-//        p.sendMessage(" - Полный день длится 1 час (30 минут день и 30 минут ночь).");
-//        p.sendMessage(" - Ночь невозможно пропустить.");
-//        p.sendMessage(" - Координаты скрыты. Ориентироваться придется естественными способами.");
-//        p.sendMessage(" - При каждом возраждении у вас остается всего 2 единицы голода.");
         return true;
     }
 
     public static void showGeneralInfo(Player p) {
         p.sendMessage("Добро пожаловать!");
-        p.sendMessage("На сервере присутствуют уникальные.");
-        p.sendMessage("Ознакомиться - " + ChatColor.GRAY + "*Подробнее*");
+        p.sendMessage("На сервере присутствуют уникальные системы.");
+
+        TextComponent message = new TextComponent("Ознакомиться - ");
+
+        // Create the clickable "Подробнее" part
+        TextComponent moreInfo = new TextComponent("*Подробнее*");
+        moreInfo.setColor(net.md_5.bungee.api.ChatColor.GRAY);
+        moreInfo.setClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, "https://harpervenom.github.io/wildark_website/")); // Replace with your URL
+
+        // Add "Подробнее" to the base message
+        message.addExtra(moreInfo);
+        p.spigot().sendMessage(message);
     }
 }

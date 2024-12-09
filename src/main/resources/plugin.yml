@@ -16,4 +16,8 @@ commands:
     usage: "/grant <player> <region name> <relation>"
   delete:
     description: Удалить свой участок
-    usageg: "/delete <region name>"
+    usage: "/delete <region name>"
+  mute:
+    usage: "/mute <player> <duration>"
+  ban:
+    usage: "/ban <player> <duration> <reason>"

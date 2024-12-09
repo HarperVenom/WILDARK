@@ -10,6 +10,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 
+import static me.harpervenom.wildark.WILDARK.getPlugin;
+
 public class DayDuration implements CommandExecutor {
 
     private static BukkitTask timeTask;
@@ -37,7 +39,7 @@ public class DayDuration implements CommandExecutor {
     }
 
     public static void setDayDurationInSeconds(int seconds) {
-        World world = WILDARK.getPlugin().getServer().getWorld("world");
+        World world = getPlugin().getServer().getWorld("world");
         if (world == null) return;
 
         int ticks = seconds * 20;
@@ -48,8 +50,8 @@ public class DayDuration implements CommandExecutor {
             jump = 1;
         }
 
-        WILDARK.getPlugin().getConfig().set("day-duration-seconds", seconds);
-        WILDARK.getPlugin().saveConfig();
+        getPlugin().getConfig().set("day-duration-seconds", seconds);
+        getPlugin().saveConfig();
 
         if (timeTask != null && !timeTask.isCancelled()) {
             timeTask.cancel();
@@ -64,6 +66,6 @@ public class DayDuration implements CommandExecutor {
                 world.setTime(currentTime + (int) finalJump);
 
             }
-        }.runTaskTimer(WILDARK.getPlugin(), 0, period);
+        }.runTaskTimer(getPlugin(), 0, period);
     }
 }

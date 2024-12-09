@@ -19,17 +19,29 @@ public class WildPlayer {
     private int availableRegions;
     private int accumulator;
 
+    private int muted;
+
     private BukkitTask timer;
 
     private List<Region> regions = new ArrayList<>();
 
-    public WildPlayer(String id, int availableBlocks, int availableRegions, int accumulator) {
+    public WildPlayer(String id, int availableBlocks, int availableRegions, int accumulator, int muted) {
         this.id = id;
         this.availableBlocks = availableBlocks;
         this.availableRegions = availableRegions;
         this.accumulator = accumulator;
 
         runTimer();
+    }
+
+    public void addMuted(int muted) {
+        this.muted += muted;
+        if (this.muted < 0) this.muted = 0;
+        db.players.updateMuted(id, this.muted);
+    }
+
+    public int getMuted() {
+        return muted;
     }
 
     public String getId() {
