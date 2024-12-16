@@ -1,27 +1,64 @@
 package me.harpervenom.wildark.listeners;
 
+import com.destroystokyo.paper.event.player.PlayerSetSpawnEvent;
+import com.destroystokyo.paper.profile.PlayerProfile;
+import io.papermc.paper.ban.BanListType;
+import io.papermc.paper.event.player.AsyncChatEvent;
 import me.harpervenom.wildark.classes.Region;
+import me.harpervenom.wildark.classes.WildBlock;
 import me.harpervenom.wildark.classes.WildPlayer;
-import net.md_5.bungee.api.ChatMessageType;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.TextComponent;
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.Location;
+import org.bukkit.*;
+import org.bukkit.ban.IpBanList;
+import org.bukkit.ban.ProfileBanList;
+import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.*;
+import org.bukkit.event.world.SpawnChangeEvent;
 
 import static me.harpervenom.wildark.WILDARK.db;
 import static me.harpervenom.wildark.WILDARK.getPlugin;
 import static me.harpervenom.wildark.commands.Help.showGeneralInfo;
+import static me.harpervenom.wildark.listeners.BlockListener.*;
 import static me.harpervenom.wildark.listeners.WildChunksListener.wildRegions;
 
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.util.*;
 
 public class PlayerListener implements Listener {
 
     public static HashMap<UUID, WildPlayer> wildPlayers = new HashMap<>();
+
+    List<TextComponent> messages = new ArrayList<>();
+    private int messageIndex = 0;
+
+    public PlayerListener() {
+        TextComponent message1 = new TextComponent(ChatColor.GOLD + "Инструкция по серверу - " + ChatColor.GRAY + "*Ссылка*");
+        message1.setClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, "https://harpervenom.github.io/wildark_website/"));
+
+        TextComponent message2 = new TextComponent(ChatColor.GOLD + "Присоединяйтесь к серверу Дискорд - " + ChatColor.GRAY + "*Ссылка*");
+        message2.setClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, "https://discord.gg/XPQUZuXmqs"));
+
+        TextComponent message3 = new TextComponent(ChatColor.GOLD + "Присоединяйтесь к чату Телеграм - " + ChatColor.GRAY + "*Ссылка*");
+        message3.setClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, "https://t.me/+uncOhNHx6zY5ZWFi"));
+
+        messages.add(message1);
+        messages.add(message2);
+        messages.add(message3);
+
+        Bukkit.getScheduler().runTaskTimer(getPlugin(), () -> {
+            for (Player player : Bukkit.getOnlinePlayers()) {
+                player.spigot().sendMessage(messages.get(messageIndex));
+            }
+            messageIndex = (messageIndex + 1) % messages.size();
+        },0, 1800 * 20);
+    }
 
     @EventHandler
     public void PlayerJoin(PlayerJoinEvent e) {
@@ -30,7 +67,7 @@ public class PlayerListener implements Listener {
         e.setJoinMessage(ChatColor.YELLOW + p.getName() + " в игре.");
         UUID id = p.getUniqueId();
 
-        if (!p.hasPlayedBefore()) Bukkit.getScheduler().runTaskLater(getPlugin(),() -> showGeneralInfo(p),1);
+        Bukkit.getScheduler().runTaskLater(getPlugin(),() -> showGeneralInfo(p),1);
 
         if (!wildPlayers.containsKey(id)) {
             db.players.getPlayer(id.toString()).thenAccept((wildPlayer) -> {
@@ -79,14 +116,14 @@ public class PlayerListener implements Listener {
 
     }
 
-    private static final int LOCAL_RADIUS = 30;
+    private static final int LOCAL_RADIUS = 50;
 
     @EventHandler
-    public void onPlayerChat(AsyncPlayerChatEvent event) {
+    public void onPlayerChat(AsyncChatEvent e) {
         // Cancel the default chat behavior
-        event.setCancelled(true);
+        e.setCancelled(true);
 
-        Player sender = event.getPlayer();
+        Player sender = e.getPlayer();
 
         WildPlayer wp = getWildPlayer(sender);
         if (wp.getMuted() > 0) {
@@ -94,7 +131,7 @@ public class PlayerListener implements Listener {
             return;
         }
 
-        String message = event.getMessage();
+        String message = PlainTextComponentSerializer.plainText().serialize(e.message());
         Location senderLocation = sender.getLocation();
         boolean isGlobal = message.startsWith("!");
 
@@ -119,7 +156,7 @@ public class PlayerListener implements Listener {
                                     "> " + ChatColor.GRAY + message.substring(1)
                     );
                 }
-                System.out.println("[Global] " + sender.getName() + " > " + message.substring(1));
+
                 if (!recipient.equals(sender)) {
                     messageReceivedByOthers = true;
                 }
@@ -134,17 +171,54 @@ public class PlayerListener implements Listener {
                     }
                 }
 
-                System.out.println("[Local] " + sender.getName() + ": " + message);
+
             }
         }
+        getPlugin().getLogger().info(sender.getName() + " > " + message);
 
         // Notify the sender if no one else received the message
         if (!messageReceivedByOthers) {
-            sender.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(ChatColor.GRAY + "Вас никто не услышал..."));
+            sender.sendMessage(ChatColor.GRAY + "Вас никто не услышал...");
+        }
+    }
+
+    @EventHandler
+    public void RespawnChange(PlayerSetSpawnEvent e) {
+        Location newLoc = e.getLocation();
+        if (newLoc == null) return;
+
+        Player p = e.getPlayer();
+        Block b = getMainBlock(newLoc.getBlock());
+
+        WildBlock wb = getWildBlock(b);
+        if (wb == null) return;
+        if (!blockCanBreak(p.getUniqueId().toString(), b)) {
+            e.setCancelled(true);
         }
     }
 
     public static WildPlayer getWildPlayer(Player p){
         return wildPlayers.get(p.getUniqueId());
+    }
+
+    @EventHandler
+    public void BannedJoin(AsyncPlayerPreLoginEvent e) {
+        ProfileBanList banList = Bukkit.getBanList(BanListType.PROFILE);
+        PlayerProfile playerProfile = e.getPlayerProfile();
+
+        if (banList.isBanned(playerProfile)) {
+            BanEntry<PlayerProfile> profileBanEntry = banList.getBanEntry(playerProfile);
+            String reason = profileBanEntry.getReason();
+            Date expirationDate = profileBanEntry.getExpiration();
+
+            InetAddress inetAddress = e.getAddress();
+
+            IpBanList ipBanList = Bukkit.getBanList(BanListType.IP);
+
+            if (!ipBanList.isBanned(inetAddress)) {
+                ipBanList.addBan(inetAddress, reason, expirationDate, "Wildark");
+                getPlugin().getLogger().info("IP-адрес игрока " + e.getName() + " успешно забанен.");
+            }
+        }
     }
 }

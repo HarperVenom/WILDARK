@@ -74,6 +74,7 @@ public class WildBlock {
         List<WildBlock> wildBlockList = new ArrayList<>(wildBlocks.get(chunk));
 
         wildBlockList.stream().filter(block -> block.getLoc().equals(loc)).forEach(WildBlock::remove);
+
         wildBlockList.removeIf(block -> block.getLoc().equals(loc));
 
         wildBlockList.add(this);

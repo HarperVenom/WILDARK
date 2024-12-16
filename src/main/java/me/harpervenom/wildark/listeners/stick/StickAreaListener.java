@@ -55,22 +55,22 @@ public class StickAreaListener implements Listener {
                         }
                     }
 
-                    showBlock(new Location(loc.getWorld(),i,loc.getY(),j).add(0.5,0.5,0.5), 10, color);
+                    showBlock(p, new Location(loc.getWorld(),i,loc.getY(),j).add(0.5,0.5,0.5), 10, color);
                 }
             }
         });
     }
 
-    public void showBlock(Location center, int count, Color color) {
+    public void showBlock(Player p, Location center, int count, Color color) {
         float offset = 0.5f;
 
         for (int i = 0; i < count; i++) {
             double x = center.getX() + (Math.random() * 2 - 1) * offset;
-            double y = center.getY() + (Math.random() * 2 - 1) * 2*offset;
+            double y = center.getY() + (Math.random() * 2 - 1) * 2 * offset;
             double z = center.getZ() + (Math.random() * 2 - 1) * offset;
 
-            Particle.DustOptions dustOptions = new Particle.DustOptions(color,1f);
-            center.getWorld().spawnParticle(Particle.DUST, x, y, z, 1, dustOptions);
+            Particle.DustOptions dustOptions = new Particle.DustOptions(color, 1f);
+            p.spawnParticle(Particle.DUST, x, y, z, 1, 0, 0, 0, 0, dustOptions);
         }
     }
 }

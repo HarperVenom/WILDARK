@@ -18,6 +18,6 @@ commands:
     description: Удалить свой участок
     usage: "/delete <region name>"
   mute:
-    usage: "/mute <player> <duration>"
+    usage: "/mute <player> <minutes>"
   ban:
-    usage: "/ban <player> <duration> <reason>"
+    usage: "/ban <player> <minutes> <reason>"

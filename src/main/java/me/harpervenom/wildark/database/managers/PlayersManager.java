@@ -23,6 +23,7 @@ public class PlayersManager {
                         "available_blocks INTEGER NOT NULL, " +
                         "available_regions INTEGER NOT NULL, " +
                         "accumulator INTEGER NOT NULL, " +
+                        "muted INTEGER NOT NULL, " +
                         "timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)";
                 statement.executeUpdate(sql);
 
@@ -53,7 +54,7 @@ public class PlayersManager {
     public CompletableFuture<WildPlayer> create(UUID id) {
         return CompletableFuture.supplyAsync(() -> {
             String sql = "INSERT INTO players (id, available_blocks, available_regions, accumulator, muted) VALUES " +
-                    "(?, ?, ?, ?)";
+                    "(?, ?, ?, ?, ?)";
             try (PreparedStatement ps = connection.prepareStatement(sql)) {
                 int availableBlocks = 0;
                 int availableRegions = 0;

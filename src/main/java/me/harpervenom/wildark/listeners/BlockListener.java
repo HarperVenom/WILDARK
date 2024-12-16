@@ -205,8 +205,10 @@ public class BlockListener implements Listener {
 
         if (!regionOwnerId.equals(blockOwnerId) && blockOwnerToRegionRelation == null) return true;
 
-        if (region.getRelation(playerId).relation().equals("authority")) return true;
+        Relation playerToRegionRelation = region.getRelation(playerId);
+        if (playerToRegionRelation != null && playerToRegionRelation.relation().equals("authority")) return true;
 
+        //If block owner is region owner and block relation to region is null, it means this block belongs to the region owner
         if (blockOwnerToRegionRelation == null) return false;
 
         if (blockOwnerToRegionRelation.relation().equals("member")) {
@@ -238,6 +240,8 @@ public class BlockListener implements Listener {
 
     public static WildBlock getWildBlock(Block b) {
         Chunk chunk = b.getChunk();
+
+//        Bukkit.broadcastMessage(wildBlocks.get(chunk).size() + " - blocks");
 
         for (WildBlock block : wildBlocks.get(chunk)) {
             if (block.getLoc().equals(b.getLocation())) return block;
@@ -376,7 +380,7 @@ public class BlockListener implements Listener {
             if (nearbyEntity instanceof Player) {
                 p = (Player) nearbyEntity;
                 // Log or perform any other actions you need here
-                getLogger().info("Player " + p.getName() + " was near the creeper explosion. "
+                getPlugin().getLogger().info("Player " + p.getName() + " was near the creeper explosion. "
                         + e.getLocation().getX() + " " + e.getLocation().getY() + " " + e.getLocation().getZ());
             }
         }

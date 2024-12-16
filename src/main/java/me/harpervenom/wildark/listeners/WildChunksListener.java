@@ -18,6 +18,7 @@ import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 import static me.harpervenom.wildark.WILDARK.db;
+import static me.harpervenom.wildark.WILDARK.getPlugin;
 import static me.harpervenom.wildark.keys.classes.listeners.LockListener.locks;
 
 import java.util.*;
@@ -32,7 +33,7 @@ public class WildChunksListener implements Listener {
         });
     }
 
-    HashMap<Chunk, Set<Player>> activeChunks = new HashMap<>();
+    static HashMap<Chunk, Set<Player>> activeChunks = new HashMap<>();
 
     public static List<Region> wildRegions = new ArrayList<>();
     public static boolean regionsLoaded = false;
@@ -103,12 +104,13 @@ public class WildChunksListener implements Listener {
             int minZ = chunkZ * 16;
             int maxZ = minZ + 15;
 
-            System.out.println("[WILDARK] Loading chunk synchronously...");
+            getPlugin().getLogger().info("[WILDARK] Loading chunk synchronously...");
             wildBlocks.put(chunk, db.blocks.getWildBlocksSync(minX, minZ, maxX, maxZ, chunk.getWorld().getName()));
+            scheduleChunkUnload(chunk);
         }
     }
 
-    private final HashMap<Chunk, BukkitTask> chunkUnloadTasks = new HashMap<>();
+    private static final HashMap<Chunk, BukkitTask> chunkUnloadTasks = new HashMap<>();
 
     // When a player enters a chunk
     public void onPlayerEnterChunks(Player player, List<Chunk> chunks) {
@@ -141,7 +143,7 @@ public class WildChunksListener implements Listener {
         }
     }
 
-    private void scheduleChunkUnload(Chunk chunk) {
+    private static void scheduleChunkUnload(Chunk chunk) {
         int UNLOAD_DELAY = 60;
         BukkitTask unloadTask = new BukkitRunnable() {
             @Override

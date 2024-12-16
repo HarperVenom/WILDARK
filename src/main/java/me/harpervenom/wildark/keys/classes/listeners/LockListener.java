@@ -154,13 +154,11 @@ public class LockListener implements Listener {
     @EventHandler
     public void onZombieBreakDoor(EntityBreakDoorEvent e) {
         if (!getPlugin().getConfig().getBoolean("zombie_break_doors")) return;
-        Entity entity = e.getEntity();
-        if (entity instanceof Zombie) {
-            Block b = e.getBlock();
-            Lock lock = getLock(b);
-            if (lock == null) return;
-            e.setCancelled(true);
-        }
+
+        Block b = e.getBlock();
+        Lock lock = getLock(b);
+        if (lock == null) return;
+        e.setCancelled(true);
     }
 
     @EventHandler

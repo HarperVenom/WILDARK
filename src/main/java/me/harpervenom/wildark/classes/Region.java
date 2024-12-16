@@ -14,6 +14,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static me.harpervenom.wildark.WILDARK.db;
+import static me.harpervenom.wildark.WILDARK.getPlugin;
 import static me.harpervenom.wildark.listeners.PlayerListener.getWildPlayer;
 import static me.harpervenom.wildark.listeners.stick.StickRegionListener.resetSelection;
 import static me.harpervenom.wildark.listeners.WildChunksListener.wildRegions;
@@ -358,6 +359,8 @@ public class Region {
                 resetSelection(p);
             });
         });
+
+        getPlugin().getLogger().info(getPlayer().getName() + " создал участок: " + name);
     }
 
     public void update() {
@@ -405,6 +408,7 @@ public class Region {
                 resetSelection(p);
             }}));
         }));
+        getPlugin().getLogger().info(getPlayer().getName() + " обновил участок: " + name);
     }
 
     public void delete() {
@@ -412,6 +416,7 @@ public class Region {
 
         wildRegions.remove(this);
         db.regions.deleteRegion(id);
+        getPlugin().getLogger().info(getPlayer().getName() + " удалил участок: " + name);
     }
 
     public void selectNew(Block b) {
@@ -571,6 +576,7 @@ public class Region {
                 getPlayer().sendMessage(ChatColor.RED + "Не удалось установить отношение");
             } else {
                 getPlayer().sendMessage(ChatColor.GREEN + "Вы успешно установили отношение: " + relation.relation());
+                getPlugin().getLogger().info(getPlayer().getName() + " создал отношение для участка: " + name + " с " + Bukkit.getPlayer(playerId).getName() + ": " + relation.relation());
             }
         });
     }

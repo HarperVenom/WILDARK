@@ -18,18 +18,12 @@ public class Help implements CommandExecutor {
     }
 
     public static void showGeneralInfo(Player p) {
-        p.sendMessage("Добро пожаловать!");
-        p.sendMessage("На сервере присутствуют уникальные системы.");
+        p.sendMessage("Для ознакомления со всеми особенностями сервера - перейдите по ссылке:");
 
-        TextComponent message = new TextComponent("Ознакомиться - ");
+        TextComponent message = new TextComponent("*Ознакомиться*");
+        message.setColor(net.md_5.bungee.api.ChatColor.GRAY);
+        message.setClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, "https://harpervenom.github.io/wildark_website/")); // Replace with your URL
 
-        // Create the clickable "Подробнее" part
-        TextComponent moreInfo = new TextComponent("*Подробнее*");
-        moreInfo.setColor(net.md_5.bungee.api.ChatColor.GRAY);
-        moreInfo.setClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, "https://harpervenom.github.io/wildark_website/")); // Replace with your URL
-
-        // Add "Подробнее" to the base message
-        message.addExtra(moreInfo);
         p.spigot().sendMessage(message);
     }
 }

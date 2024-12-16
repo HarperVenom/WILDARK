@@ -66,17 +66,17 @@ public final class WILDARK extends JavaPlugin {
 
         getServer().getPluginManager().registerEvents(new Menu(), this);
 
-        System.out.println("[WILDARK] Плагин запущен.");
+        getPlugin().getLogger().info("Плагин запущен.");
 
         int savedDuration = getConfig().getInt("day-duration-seconds", -1);  // Default to -1 if not set
 
         if (savedDuration != -1) {
             DayDuration.setDayDurationInSeconds(savedDuration);  // Reapply the saved day duration
-            System.out.println("[WILDARK] Длительность дня: " + savedDuration + " секунд.");
+            getPlugin().getLogger().info("Длительность дня: " + savedDuration + " секунд.");
         }
 
         getServer().setSpawnRadius(0);
-        System.out.println("[WILDARK] Радиус спавна: 0.");
+        getPlugin().getLogger().info("Радиус спавна: 0.");
 
         for (World world : Bukkit.getWorlds()) {
             world.setDifficulty(Difficulty.HARD);
@@ -85,8 +85,10 @@ public final class WILDARK extends JavaPlugin {
             world.setGameRule(GameRule.REDUCED_DEBUG_INFO, true);
             world.setGameRule(GameRule.PLAYERS_SLEEPING_PERCENTAGE, 101);
         }
-        System.out.println("[WILDARK] Диаметр мира: 4000.");
-        System.out.println("[WILDARK] Сложность: Сложная.");
+        getPlugin().getLogger().info("Диаметр мира: 4000.");
+        getPlugin().getLogger().info("Сложность: Сложная.");
+        getPlugin().getLogger().info("Координаты скрыты.");
+        getPlugin().getLogger().info("Пропустить ночь невозможно.");
     }
 
     private void loadLanguageFile(String lang) {

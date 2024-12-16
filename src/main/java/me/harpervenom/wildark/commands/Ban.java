@@ -1,16 +1,25 @@
 package me.harpervenom.wildark.commands;
 
+import com.destroystokyo.paper.profile.PlayerProfile;
+import io.papermc.paper.ban.BanListType;
 import me.harpervenom.wildark.database.managers.PlayersManager;
+import me.harpervenom.wildark.listeners.PlayerListener;
+import net.kyori.adventure.text.Component;
+import org.apache.maven.model.Profile;
 import org.bukkit.BanList;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
+import org.bukkit.ban.IpBanList;
+import org.bukkit.ban.ProfileBanList;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.profile.PlayerProfile;
 
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.time.Instant;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
@@ -27,15 +36,15 @@ public class Ban implements CommandExecutor {
         }
 
         if (args.length < 3) {
-            sender.sendMessage("Использование: /ban <player> <duration> <reason>");
+            sender.sendMessage("Использование: /ban <player> <minutes> <reason>");
             return true;
         }
 
         String targetPlayer = args[0];
-        int duration;
+        int minutes;
 
         try {
-            duration = Integer.parseInt(args[1]);
+            minutes = Integer.parseInt(args[1]);
         } catch (NumberFormatException e) {
             sender.sendMessage("Длительность должна быть числом.");
             return true;
@@ -43,50 +52,54 @@ public class Ban implements CommandExecutor {
 
         String reason = args[2];
 
-        banPlayer(sender, targetPlayer, reason, duration);
+        banPlayer(sender, targetPlayer, reason, minutes);
         return true;
     }
 
-    public void banPlayer(CommandSender sender, String playerName, String reason, long durationInSeconds) {
-        // Calculate the expiration date for the ban
-        Date expirationDate = durationInSeconds > 0 ? new Date(System.currentTimeMillis() + (durationInSeconds * 1000)) : null;
+    public void banPlayer(CommandSender sender, String playerName, String reason, long durationInMinutes) {
+        Instant expirationInstant = durationInMinutes > 0 ? Instant.now().plusSeconds(durationInMinutes * 60) : null;
+        Date expirationDate = expirationInstant != null ? Date.from(expirationInstant) : null;
 
-        UUID playerUUID = null;
+        UUID playerUUID;
+        OfflinePlayer targetOfflinePlayer = Bukkit.getOfflinePlayerIfCached(playerName);
 
-        List<OfflinePlayer> offlinePlayers = List.of(Bukkit.getOfflinePlayers());
-        for (OfflinePlayer player : offlinePlayers) {
-            if (player.getName() == null) continue;
-            if (player.getName().equals(playerName)) {
-                playerUUID = player.getUniqueId();
-            }
-        }
-
-        if (playerUUID == null) {
-            sender.sendMessage("Игрок не найден.");
+        if (targetOfflinePlayer == null) {
+            sender.sendMessage("Игрок не найден в кеше. Попробуйте позже.");
             return;
         }
 
-        Bukkit.broadcastMessage(playerUUID + "");
+        playerUUID = targetOfflinePlayer.getUniqueId();
+        Player p = Bukkit.getPlayer(playerUUID);
 
-        // Access the ban list for players
-        BanList<PlayerProfile> banList = Bukkit.getBanList(BanList.Type.PROFILE);
+        //IP
+        if (p != null) {
+            InetSocketAddress socketAddress = p.getAddress();
+            if (socketAddress != null) {
+                InetAddress inetAddress = socketAddress.getAddress();
 
-        PlayerProfile playerProfile = Bukkit.createPlayerProfile(playerUUID, playerName);
+                IpBanList ipBanList = Bukkit.getBanList(BanListType.IP);
 
-        // Add the player to the ban list with the expiration date and reason
-        banList.addBan(playerProfile, reason, expirationDate, "Plugin");
+                ipBanList.addBan(inetAddress, reason, expirationDate, "Wildark");
 
-        // If the player is currently online, kick them with the reason and expiration date
-        Player player = Bukkit.getPlayer(playerName);
-        if (player != null) {
-            String expirationMessage = expirationDate != null ? expirationDate.toString() : "неопределенный срок";
-            player.kickPlayer("Вы забанены до " + expirationMessage + ". Причина: " + reason);
+                sender.sendMessage("IP-адрес игрока " + playerName + " успешно забанен.");
+                Component kickMessage = Component.text("Вы забанены. Причина: " + reason + ". До: " + expirationDate);
+                p.kick(kickMessage);
+            } else {
+                sender.sendMessage("Не удалось получить IP-адрес игрока.");
+            }
         }
 
-        // Ban the player by IP
-        if (player != null) {
-            InetAddress ipAddress = player.getAddress().getAddress();
-            Bukkit.getBanList(BanList.Type.IP).addBan(ipAddress.getHostAddress(), reason, expirationDate, "Plugin");
+        //PROFILE
+        PlayerProfile playerProfile = Bukkit.createProfile(playerUUID, playerName);
+
+        ProfileBanList banList = Bukkit.getBanList(BanListType.PROFILE);
+        banList.addBan(playerProfile, reason, expirationDate, "Wildark");
+
+
+        String message = "Игрок " + playerName + " успешно забанен. Причина: " + reason + ". До: " + expirationDate;
+        getPlugin().getLogger().info(message);
+        if (!(sender instanceof ConsoleCommandSender)) {
+            sender.sendMessage(message);
         }
     }
 }

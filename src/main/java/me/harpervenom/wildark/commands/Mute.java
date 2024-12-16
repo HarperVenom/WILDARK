@@ -37,7 +37,7 @@ public class Mute implements CommandExecutor {
         }
 
         if (args.length < 2) {
-            sender.sendMessage("Использование: /mute <player> <duration>");
+            sender.sendMessage("Использование: /mute <player> <minutes>");
             return true;
         }
 
@@ -45,10 +45,10 @@ public class Mute implements CommandExecutor {
         String targetPlayer = String.valueOf(Bukkit.getOfflinePlayer(targetName).getUniqueId());
 
 
-        int duration;
+        int minutes;
 
         try {
-            duration = Integer.parseInt(args[1]);
+            minutes = Integer.parseInt(args[1]);
         } catch (NumberFormatException e) {
             sender.sendMessage("Длительность должна быть числом.");
             return true;
@@ -57,14 +57,14 @@ public class Mute implements CommandExecutor {
         Player p = Bukkit.getPlayer(targetName);
         if (p != null) {
             WildPlayer wp = getWildPlayer(p);
-            wp.addMuted(duration);
-            sender.sendMessage("Игрок " + targetName + " замъючен на " + duration + " секунд.");
+            wp.addMuted(minutes);
+            sender.sendMessage("Игрок " + targetName + " замъючен на " + minutes + " минут.");
             return true;
         }
 
-        db.players.updateMuted(targetPlayer, duration).thenAccept((success) -> {
+        db.players.updateMuted(targetPlayer, minutes * 60).thenAccept((success) -> {
             if (success) {
-                sender.sendMessage("Игрок " + targetName + " замъючен на " + duration + " секунд.");
+                sender.sendMessage("Игрок " + targetName + " замъючен на " + minutes + " минут.");
             } else {
                 sender.sendMessage("Не удалось замутить игрока " + targetPlayer + ".");
             }

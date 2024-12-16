@@ -1,5 +1,8 @@
 package me.harpervenom.wildark.keys.classes.listeners;
 
+import me.harpervenom.wildark.classes.Region;
+import me.harpervenom.wildark.classes.Relation;
+import me.harpervenom.wildark.classes.WildBlock;
 import me.harpervenom.wildark.keys.classes.Key;
 import me.harpervenom.wildark.keys.classes.Lock;
 import net.md_5.bungee.api.ChatMessageType;
@@ -8,6 +11,7 @@ import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.Container;
+import org.bukkit.block.DoubleChest;
 import org.bukkit.block.data.type.Door;
 import org.bukkit.block.data.type.TrapDoor;
 import org.bukkit.entity.HumanEntity;
@@ -36,6 +40,8 @@ import static me.harpervenom.wildark.keys.classes.Key.getKey;
 import static me.harpervenom.wildark.keys.classes.Lock.getLock;
 import static me.harpervenom.wildark.keys.classes.listeners.LockListener.getMainBlock;
 import static me.harpervenom.wildark.keys.classes.listeners.LockListener.isCurrentlyPoweredAdjacent;
+import static me.harpervenom.wildark.listeners.BlockListener.getBlockRegion;
+import static me.harpervenom.wildark.listeners.BlockListener.getWildBlock;
 import static me.harpervenom.wildark.listeners.WildChunksListener.chunkNotLoaded;
 
 public class KeyListener implements Listener {
@@ -212,6 +218,14 @@ public class KeyListener implements Listener {
         }
 
         b = getMainBlock(b);
+
+        Region region = getBlockRegion(b);
+        if (region == null) return;
+        WildBlock wb = getWildBlock(b);
+        if (wb == null) return;
+        Relation relation = region.getRelation(wb.getOwnerId());
+        if (!(wb.getOwnerId().equals(region.getOwnerId().toString())) && (relation == null || relation.relation().equals("claimed"))) return;
+
         Lock lock = getLock(b);
         if (lock == null || !lock.isConnected()) return;
 
@@ -306,12 +320,8 @@ public class KeyListener implements Listener {
 
             if (lock.isLocked() && lock.getType().equals("container")) {
                 Inventory inventory = ((Container) b.getState()).getInventory();
-                List<HumanEntity> viewers = new ArrayList<>(inventory.getViewers());
-                for (HumanEntity viewer : viewers) {
-                    if (viewer instanceof Player player) {
-                        player.closeInventory();
-                    }
-                }
+
+                closeInventoryForPlayers(inventory.getLocation());
             }
         }
     }
@@ -327,11 +337,7 @@ public class KeyListener implements Listener {
                 lock.setLocked(true, p);
                 quickOpen.remove(p.getUniqueId());
 
-                List<HumanEntity> viewers = new ArrayList<>(e.getViewers());
-                for (HumanEntity viewer : viewers) {
-                    Player player = (Player) viewer;
-                    player.closeInventory();
-                }
+                closeInventoryForPlayers(e.getInventory().getLocation());
             }
         }
     }
@@ -371,6 +377,16 @@ public class KeyListener implements Listener {
             return true;
         }
         return false;
+    }
+
+    public void closeInventoryForPlayers(Location loc) {
+        if (loc == null) return;
+
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            if (loc.equals(player.getOpenInventory().getTopInventory().getLocation())) {
+                player.closeInventory();
+            }
+        }
     }
 
 }
