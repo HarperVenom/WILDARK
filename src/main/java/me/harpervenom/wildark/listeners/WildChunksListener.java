@@ -104,7 +104,7 @@ public class WildChunksListener implements Listener {
             int minZ = chunkZ * 16;
             int maxZ = minZ + 15;
 
-            getPlugin().getLogger().info("[WILDARK] Loading chunk synchronously...");
+            getPlugin().getLogger().info("Loading chunk synchronously...");
             wildBlocks.put(chunk, db.blocks.getWildBlocksSync(minX, minZ, maxX, maxZ, chunk.getWorld().getName()));
             scheduleChunkUnload(chunk);
         }

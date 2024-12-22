@@ -72,9 +72,11 @@ public class Materials {
         if (type == Material.NETHERITE_BLOCK) return 16;
         if (type == Material.DIAMOND_BLOCK) return 8;
         if (type == Material.OBSIDIAN || type == Material.CRYING_OBSIDIAN
-                || type == Material.IRON_BLOCK || type == Material.IRON_DOOR) {
+                || type == Material.IRON_BLOCK || type == Material.IRON_DOOR || type == Material.IRON_TRAPDOOR) {
             return 6;
         }
+
+        if (type.name().contains("CHEST") || type == Material.BARREL) return 4;
 
         return 3;
     }

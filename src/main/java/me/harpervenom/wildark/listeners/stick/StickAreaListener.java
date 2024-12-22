@@ -37,7 +37,7 @@ public class StickAreaListener implements Listener {
         scanArea(p, bLoc,3);
     }
 
-    public void scanArea(Player p ,Location loc, int radius) {
+    public void scanArea(Player p, Location loc, int radius) {
         db.regions.scanArea(loc.getWorld().getName(), loc.getBlockX(), loc.getBlockZ(), radius).thenAccept(regions -> {
             int minX = loc.getBlockX() - radius;
             int maxX = loc.getBlockX() + radius;

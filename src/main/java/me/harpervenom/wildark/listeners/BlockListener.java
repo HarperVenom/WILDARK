@@ -218,7 +218,8 @@ public class BlockListener implements Listener {
         if (blockOwnerToRegionRelation.relation().equals("claim")) {
             return blockOwnerToRegionRelation.time().before(wb.getTimestamp());
         }
-        return true;
+
+        return !blockOwnerToRegionRelation.relation().equals("authority");
     }
 
     public static boolean isBlockProtected(Block b) {
@@ -241,7 +242,9 @@ public class BlockListener implements Listener {
     public static WildBlock getWildBlock(Block b) {
         Chunk chunk = b.getChunk();
 
-//        Bukkit.broadcastMessage(wildBlocks.get(chunk).size() + " - blocks");
+        if (wildBlocks.get(chunk) == null) {
+            loadChunkSync(chunk);
+        }
 
         for (WildBlock block : wildBlocks.get(chunk)) {
             if (block.getLoc().equals(b.getLocation())) return block;

@@ -55,6 +55,8 @@ public final class WILDARK extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new LockListener(), this);
         getServer().getPluginManager().registerEvents(new KeyListener(), this);
 
+        getServer().getPluginManager().registerEvents(new NicknameListener(), this);
+
         getCommand("m").setExecutor(new Menu());
         getCommand("setdayduration").setExecutor(new DayDuration());
         getCommand("grant").setExecutor(new Grant());
